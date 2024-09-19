@@ -5,6 +5,7 @@ interface User {
     accessToken: string;
     phoneNumber: string;
     role: [string];
+    accessibleRoute: [RouteAuth];
 }
 
 interface Employee {

@@ -1,9 +1,30 @@
-import React from 'react';
+'use client';
+
+import React, { useEffect, useState } from 'react';
 import Image from 'next/image';
 import SwitchButton from '@/components/switchButton';
 import CategoryList from '@/components/categoryBar';
+import CoreClient from '@/utils/client';
 
 export default function Pos() {
+
+    const [products, setProducts] = useState<Product[]>([]);
+
+    useEffect(() => {
+        loadProducts();
+
+    }, [])
+
+    const loadProducts = async () => {
+        const client = CoreClient.getInstance();
+        var result = await client.getProducts({ "searchTerm": '', "page": 1 });
+        if (result.length > 0) {
+            // end of list
+            setProducts(prevProducts => [...prevProducts, ...result]); // Append new products
+        }
+    }
+
+
     return (
         <div className="flex bg-gray-100">
 
@@ -34,14 +55,19 @@ export default function Pos() {
                             <CategoryList />
                         </div>
                         <div className="grid grid-cols-4 gap-4">
-                            {[...Array(9)].map((_, i) => (
+                            {products.map((_, i) => (
                                 <div key={i} className="bg-white rounded-lg p-4 shadow">
-                                    <div className="relative mb-2 item flex justify-center">
-                                        <Image src="/ramly-burger.webp" alt="Ramly Burger" width={200} height={200} className="rounded-lg" />
-                                        <span className="absolute top-2 right-2 bg-red-500 text-white rounded-full pl-2 pr-2 pt-1 pb-1 flex items-center justify-center">{20 * i}</span>
+
+                                    <div className="relative mb-2 item flex  h-[120px] justify-center">
+                                        <Image src={_.image ? `http://localhost:6001/img/product/${_.image.split(',')[0]}` : '/path/to/placeholder.png'}
+                                            alt="Ramly Burger"
+                                            className="rounded-lg"
+                                            layout="fill"
+                                            objectFit="cover" />
+                                        {/* <span className="absolute top-2 right-2 bg-red-500 text-white rounded-full pl-2 pr-2 pt-1 pb-1 flex items-center justify-center">{20 * i}</span> */}
                                     </div>
-                                    <h3 className="font-bold">Ramly Burger</h3>
-                                    <p className="text-red-500">RM {10000 * i}</p>
+                                    <h3 className="font-bold">{_.name} </h3>
+                                    <p className="text-red-500">RM {_.price}</p>
                                     <button className="mt-2 text-red-500 w-full h-10 bg-red-100 rounded-full flex justify-center items-center">
                                         <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                             <line x1="12" y1="5" x2="12" y2="19" strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} />

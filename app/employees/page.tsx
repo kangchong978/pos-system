@@ -3,9 +3,9 @@
 import React, { useEffect, useState } from 'react';
 import Head from 'next/head';
 import CoreClient from '@/utils/client';
-import EmployeeModal from './components/empoyeeModal';
+import EmployeeModal from '../../components/empoyeeModal';
 import toast from 'react-hot-toast';
-import TempPasswordModal from './components/tempPasswordModal';
+import TempPasswordModal from '../../components/tempPasswordModal';
 
 export default function Employees() {
     const [searchTerm, setSearchTerm] = useState('');
@@ -52,10 +52,18 @@ export default function Employees() {
         loadUsers();
     }
 
+
+    const handleResetPasswordEmployee = async (data: Employee) => {
+        // submit
+        const client = CoreClient.getInstance();
+        // await client.resetPasswordUser(data.id);
+        loadUsers();
+    }
+
     const handleSubmitEmployee = async (data: Employee) => {
         // form validation
         if (data.email == '' || data.phoneNumber == '' || data.username == '' || data.role?.length == 0) {
-            toast.error("Please fill in all informations");
+            toast.error("Please fill in all informations.");
             return;
         }
         // submit
@@ -73,6 +81,7 @@ export default function Employees() {
 
         setCurrentEmployee(null);
         loadUsers();
+        toast.success('Employee updated.');
     }
 
 
@@ -139,11 +148,17 @@ export default function Employees() {
                                                 Edit
                                             </button>
                                             <button
-                                                className="text-red-600 hover:text-red-900"
+                                                className="text-gray-400 hover:text-red-500 mr-2"
                                                 onClick={() => handleDeleteEmployee(employee)}
                                             >
                                                 Delete
                                             </button>
+                                            {/* <button
+                                                className="text-gray-400 hover:text-red-500"
+                                                onClick={() => handleResetPasswordEmployee(employee)}
+                                            >
+                                                Reset Password
+                                            </button> */}
                                             <button className='flex' onClick={() => setTempPassword(tempPassowrd ?? '')}> {tempPassowrd}</button>
                                         </td>
                                     </tr>
@@ -159,6 +174,7 @@ export default function Employees() {
                     onClose={() => setCurrentEmployee(null)}
                     onSubmit={handleSubmitEmployee}
                     isEdit={isEdit}
+                    isProfile={false}
                 />}
                 {
                     tempPassword && <TempPasswordModal

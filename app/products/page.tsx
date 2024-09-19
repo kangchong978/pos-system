@@ -1,24 +1,58 @@
 'use client';
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import EditProductModal from '@/components/editProductModal';
+import CoreClient from '@/utils/client';
+import toast from 'react-hot-toast';
+import { buildCategoriesChips } from '@/components/categoriesChips';
 
 export default function Products() {
     const [searchTerm, setSearchTerm] = useState('');
+    const [products, setProducts] = useState<Product[]>([]);
     const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+    const [isEndOfList, setEndOfList] = useState<boolean>(false);
+    var page = 1;
+    var loading = false;
 
-    const products: Product[] = [
-        {
-            id: 1,
-            name: 'Ramly Burger',
-            image: '/ramly-burger.webp',
-            category: 'Burger',
-            description: '',
-            code: 'B100001',
-            price: 100.00
-        },
-        // Add more products as needed
-    ];
+
+    useEffect(() => {
+
+        loadProducts();
+        window.addEventListener('scroll', handleScroll); // Add scroll event listener
+        return () => {
+            window.removeEventListener('scroll', handleScroll); // Clean up on unmount
+        };
+
+    }, [])
+
+    const handleScroll = () => {
+        if (window.innerHeight + document.documentElement.scrollTop >= document.documentElement.offsetHeight - 5 && !loading) {
+            page = page + 1;
+            loadProducts();
+        }
+    };
+
+    const searchProducts = async () => {
+        console.log('Triggered search');
+        setProducts([]);
+        loadProducts();
+    }
+
+    const loadProducts = async () => {
+        if (loading) return;
+        loading = true;
+        const client = CoreClient.getInstance();
+        var result = await client.getProducts({ "searchTerm": searchTerm, "page": page });
+        if (result.length > 0) {
+            // end of list
+            setProducts(prevProducts => [...prevProducts, ...result]); // Append new products
+        } else {
+            setEndOfList(true);
+        }
+        loading = false;
+
+
+    }
 
     const handleEditProduct = (product: Product) => {
         setSelectedProduct(product);
@@ -28,22 +62,61 @@ export default function Products() {
         setSelectedProduct(null);
     };
 
-    const handleSaveProduct = (editedProduct: object) => {
-        // Here you would typically update the product in your database
-        console.log('Saving edited product:', editedProduct);
+
+    const handleSaveProduct = async (editedProduct: Product) => {
+
+        const client = CoreClient.getInstance();
+        var result;
+        if (!editedProduct.id) {
+            result = await client.createProduct(editedProduct);
+
+            // Update the products state with the edited product
+            editedProduct = { ...editedProduct, id: result }
+            setProducts(prevProducts => [...prevProducts, editedProduct]);
+
+        } else {
+            result = await client.updateProduct(editedProduct);
+
+            // Update the products state with the edited product
+            setProducts(prevProducts =>
+                prevProducts.map(product =>
+                    product.id === editedProduct.id ? editedProduct : product
+                )
+            );
+        }
+
+        if (!result) return;
         setSelectedProduct(null);
+
+
+        toast.success('Product update successfully.')
+
     };
 
+    const handleRemoveProduct = async (editedProduct: Product) => {
+        if (!editedProduct.id) return;
+        const client = CoreClient.getInstance();
+        const result = await client.removeProduct(editedProduct.id);
+        if (!result) return;
+        setSelectedProduct(null);
+
+        // Remove the product from the products state
+        setProducts(prevProducts =>
+            prevProducts.filter(product => product.id !== editedProduct.id) // Remove the product
+        );
+
+        toast.success('Product removed successfully.') // Updated success message
+
+    };
+    const handleAddProduct = () => {
+        setSelectedProduct({ 'category': '', 'code': '', 'description': '', 'image': '', 'name': '', 'price': 0.00 });
+    }
+
     return (
-        <div className="flex h-screen bg-gray-100">
-            {/* Sidebar */}
-            <aside className="w-16 bg-white h-full flex flex-col items-center py-4">
-                <Image src="/wendys-logo.png" alt="Wendy's Logo" width={40} height={40} />
-                {/* Add sidebar icons here */}
-            </aside>
+        <div className="min-h-screen bg-gray-100">
 
             {/* Main content */}
-            <main className="flex-1 p-6">
+            <main className="container mx-auto px-4 py-8">
                 <header className="flex justify-between items-center mb-6">
                     <h1 className="text-2xl font-bold text-red-500">Products</h1>
                     <button className="text-gray-400">
@@ -53,42 +126,68 @@ export default function Products() {
                     </button>
                 </header>
 
-                <div className="mb-6">
+                <div className="flex mb-6">
                     <input
                         type="text"
                         placeholder="Search by name"
-                        className="w-full px-4 py-2 rounded-lg border border-gray-300"
+                        className="w-full px-4 py-2 rounded-lg border border-gray-300 mr-[10px]"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
+                        onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                                searchProducts(); // Trigger the search/filter function
+                            }
+                        }}
                     />
+                    <button
+                        className="bg-red-500 text-white w-[200px] rounded hover:bg-red-600"
+                        onClick={() => handleAddProduct()}
+                    >
+                        Add Product
+                    </button>
                 </div>
 
+
                 <div>
-                    <div className="grid grid-cols-5 gap-6">
+                    <div className="flex flex-wrap gap-6">
                         {products.map((product) => (
-                            <div key={product.id} className="flex bg-white rounded-lg p-4 shadow" onClick={() => handleEditProduct(product)}>
-                                <Image src={product.image} alt={product.name} width={100} height={100} className="mb-2" />
-                                <div>
-                                    <h3 className="font-bold">{product.name}</h3>
-                                    <div className="flex space-x-2 mt-2">
-                                        <span className="bg-red-100 text-red-600 px-2 py-1 rounded-full text-xs">Burger</span>
-                                        <span className="bg-yellow-100 text-yellow-600 px-2 py-1 rounded-full text-xs">Beef</span>
-                                    </div>
+                            <div key={product.id} className="flex bg-white rounded-lg p-4 shadow w-[300px] h-[130px]" onClick={() => handleEditProduct(product)}>
+                                <div className="relative bg-gray-100 rounded-lg w-[100px] h-[100px] mr-[10px]">
+                                    {product.image && product.image !== '' && (
+                                        <Image
+                                            src={product.image ? `http://localhost:6001/img/product/${product.image.split(',')[0]}` : '/path/to/placeholder.png'}
+                                            alt={product.name}
+                                            className="rounded object-cover"
+                                            layout="fill"
+                                            objectFit="cover"
+                                        />
+                                    )}
                                 </div>
+                                <div>
+                                    <h3 className="font-bold mt-[5px]">{product.name}</h3>
+                                    {buildCategoriesChips(product.category)}
+                                    <h1>RM {product.price}</h1>
+                                </div>
+
                             </div>
                         ))}
+
                     </div>
+
+
                 </div>
-            </main>
+            </main >
 
             {selectedProduct && (
                 <EditProductModal
                     product={selectedProduct}
                     onClose={handleCloseModal}
                     onSave={handleSaveProduct}
+                    onRemove={handleRemoveProduct}
                 />
-            )}
-        </div>
+            )
+            }
+        </div >
     );
 };
 

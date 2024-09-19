@@ -1,15 +1,70 @@
 'use client';
-import React, { useState } from 'react';
+import CoreClient from '@/utils/client';
+import React, { useEffect, useState } from 'react';
+import toast from 'react-hot-toast';
 
 
 
 export default function Settings() {
-    const [availableRoutes, setAvailableRoutes] = useState<SysRoute[]>([{ 'route': '/pos', 'role': 'admin' }, { 'route': '/pos', 'role': 'admin' },]);
+    const [oriRoutesAuth, setOriRoutesAuth] = useState<RouteAuth[]>([]);
+    const [routesAuth, setRoutesAuth] = useState<RouteAuth[]>([]);
+    const [changed, setChanged] = useState<boolean>(false);
+
+
+
+    useEffect(() => {
+        loadRoutesAuth();
+    }, [])
+
+    const handleSubmitRoutesAuth = async () => {
+        //
+        if (!changed) { toast.error('No changes.'); return; }
+
+        const client = CoreClient.getInstance();
+        await client.updateRouteAuth(routesAuth);
+
+        setOriRoutesAuth(routesAuth);
+
+        setChanged(false);
+        toast.success('Changes saved.')
+
+    }
+
+    const handleResetRoutesAuth = () => {
+        //
+        if (!changed) { toast.error('No changes.'); return; }
+
+        setRoutesAuth(oriRoutesAuth);
+        setChanged(false);
+    }
+
+    const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+        const { name, value } = e.target;
+        // Find the index of the route to update
+        const index = routesAuth.findIndex(route => route.route === name);
+        if (index !== -1) {
+            // Create a new array with the updated route
+            const updatedRoutesAuth = routesAuth.map((route, i) =>
+                i === index ? { ...route, role: value } : route
+            );
+            setRoutesAuth(updatedRoutesAuth); // Update the state with the new array
+        }
+
+        if (!changed) setChanged(true);
+    };
+
+    const loadRoutesAuth = async () => {
+        const client = CoreClient.getInstance();
+
+        var result = await client.getRoutesAuth();
+        console.log(result);
+        setRoutesAuth(result);
+        setOriRoutesAuth(result);
+    }
 
 
     return (
-        <div className="flex bg-gray-100">
-
+        <div className="min-h-screen bg-gray-100">
             <main className="container mx-auto px-4 py-8">
                 <div className="flex justify-between items-center mb-8">
                     <div className="flex items-center">
@@ -23,33 +78,51 @@ export default function Settings() {
                 </div>
                 <div className="bg-white shadow overflow-hidden sm:rounded-lg">
                     <table className="min-w-full divide-y divide-gray-200">
-                        {/* <thead className="bg-gray-50">
+                        <thead className="bg-gray-50">
                             <tr>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Order ID</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Route</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Authorized Role</th>
                             </tr>
-                        </thead> */}
+                        </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
-                            {availableRoutes.map((route) => (
+                            {routesAuth.map((route) => (
                                 <tr>
                                     <td className="px-6 py-4 whitespace-nowrap">
                                         <span className={'px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-blue-80 mr-4'}>
                                             {route.route}
                                         </span>
-                                        <input value={route.role} type="text" name={route.route} placeholder="" className="w-full p-2 mb-2 border rounded" >
-                                        </input>
+
+                                    </td>
+                                    <td>
+                                        <textarea value={route.role} name={route.route} placeholder="" className="w-auto p-2 mb-2 border rounded " onChange={handleInputChange}>
+                                        </textarea>
                                     </td>
                                 </tr>
                             ))}
                         </tbody>
                     </table>
+
+
+                </div>
+
+                <div className="button-group mt-4 flex justify-end">
+                    <button
+                        className="bg-gray-300 text-white px-4 py-2 rounded hover:bg-gray-500 mr-2"
+                        onClick={() => handleResetRoutesAuth()}
+                    >
+                        Cancel
+                    </button>
+                    <button
+                        className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-800"
+                        onClick={() => handleSubmitRoutesAuth()}
+                    >
+                        Submit
+                    </button>
                 </div>
 
             </main>
         </div>
     );
+
+
 }

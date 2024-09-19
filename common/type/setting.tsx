@@ -1,4 +1,4 @@
-interface SysRoute {
+interface RouteAuth {
     route?: string,
     role?: string,
 
