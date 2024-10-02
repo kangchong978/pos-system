@@ -1,24 +1,23 @@
+import { Order, OrderStatus, OrderType } from "@/common/type/order";
+import { MyFile, Product } from "@/common/type/product";
+import { SaleRecord, WeeklySale } from "@/common/type/sales";
 import toast from "react-hot-toast";
 
 export default class CoreClient {
-    private static instance: CoreClient | null = null;
+    static instance: CoreClient | null = null;
     private serverUrl: String = 'http://localhost:6001'; // Load clientInfo from localStorage
     private userInfo: User | null = null; // Load clientInfo from localStorage
 
-
-
-    private constructor() {
+    constructor() {
         // Private constructor to prevent direct instantiation
-        this.loadClientInfo();
+        // this.loadClientInfo();
     }
 
-    private loadClientInfo(): any | null {
-        // Check if running in the browser
-        if (typeof window !== 'undefined') { // Ensure code runs in the browser context
+    async loadClientInfo(): Promise<void> {
+        if (typeof window !== 'undefined') {
             const rawClient = localStorage.getItem('userInfo');
-            this.userInfo = rawClient ? JSON.parse(rawClient) : null; // Parse and return userInfo or null
-        } else {
-            console.warn('loadClientInfo: Not running in a browser context.'); // Log warning if not in browser
+            this.userInfo = rawClient ? JSON.parse(rawClient) : null;
+            // You can add more async initialization logic here if needed
         }
     }
 
@@ -145,20 +144,50 @@ export default class CoreClient {
         return (result) ? result['users'] : [];
     }
 
-    async getRoutesAuth(): Promise<Employee[]> {
+    async getSettings(): Promise<CompanyInfo> {
+        const result = await this.get('/api/manage/getSettings');
+        return result ? result.settings : {};
+    }
+
+    async uploadCompanyLogo(file: File): Promise<string> {
+        const formData = new FormData();
+        formData.append('company-logo', file);
+
+        const response = await fetch(`${this.serverUrl}/api/manage/uploadCompanyLogo`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${this.userInfo?.accessToken}`
+            },
+            body: formData
+        });
+
+        if (!response.ok) {
+            throw new Error(`Logo upload failed: ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        return data.url;
+    }
+
+    async updateSettings(companyInfo: CompanyInfo): Promise<boolean> {
+        return await this.post('/api/manage/updateSettings', companyInfo);
+    }
+    async getRoutesAuth(): Promise<RouteAuth[]> {
         var result = await
             this.get('/api/manage/getRoutesAuth');
         return (result) ? result['routesAuth'] : [];
     }
 
+
     async updateRouteAuth(routesAuth: RouteAuth[]) {
         return await this.post('/api/manage/updateRoutesAuth', { routesAuth });
     }
 
-    async getProducts(payload: { searchTerm: string, page: number }): Promise<Product[]> {
+    async getProducts(payload: { searchTerm: string, page: number, categoryFilter: string }): Promise<Product[]> {
         var result = await
             this.post('/api/product/getProducts', payload);
-        return (result) ? result['products'] : [];
+
+        return (result) ? result['products'].map((v: Product) => new Product(v.name, v.image, v.category, v.description, v.code, v.price, v.variation, v.id)) : [];
     }
     async updateProduct(payload: Product) {
         await this.post('/api/product/updateProduct', payload);
@@ -176,7 +205,7 @@ export default class CoreClient {
 
     async uploadProductImage(files: MyFile[]) {
         if (!files || files.length === 0) {
-            return; // Handle no files selected case gracefully
+            return []; // Handle no files selected case gracefully
         }
 
         const results = []; // Array to store upload results
@@ -208,8 +237,120 @@ export default class CoreClient {
             }
         }
 
-        const resultString = results.join(','); // Combine results into a comma-separated string
-        return resultString;
+        return results; // Combine results into a comma-separated string
+
     }
 
+    async getProductCategories() {
+        var result = await
+            this.get('/api/product/getCategories');
+        return (result) ? result['categories'] : [];
+    }
+
+    async createCategory(name: string) {
+        var id = await this.post('/api/product/createCategory', { name });
+        return id;
+    }
+
+    async removeCategory(id: number) {
+        await this.post('/api/product/removeCategory', { id });
+        return true;
+    }
+
+    async createOrder(orderType: OrderType, tableId?: number, tableName?: string) {
+        var id = await this.post('/api/order/createOrder', { orderType, tableId, tableName });
+        return id;
+    }
+
+    async updateOrder(order: Order) {
+        await this.post('/api/order/updateOrder', order);
+        return true;
+    }
+
+    async getOrders(filters?: { status?: string; id?: number }): Promise<Order[]> {
+        let url = '/api/order/getOrders';
+
+        if (filters) {
+            const queryParams = new URLSearchParams();
+            if (filters.status) queryParams.append('status', filters.status);
+            if (filters.id) queryParams.append('id', filters.id.toString());
+            url += `?${queryParams.toString()}`;
+        }
+
+        const result = await this.get(url);
+        return result ? result['orders'].map((v: Order) => new Order(v.orderType, v.id, v.products, v.subTotal, v.tax, v.total, v.createDate, v.updateDate, v.status, v.tableId)) : [];
+
+    }
+
+    async updateOrderStatus(id: number, status: OrderStatus) {
+        await this.post('/api/order/updateOrderStatus', { id, status });
+        return true;
+    }
+
+    async getTables() {
+        var result = await this.get('/api/order/getTables');
+        return (result) ? result['tables'] : [];
+    }
+
+    async updateTablePosition(x: number, y: number, id: number) {
+        await this.post('/api/order/updateTablePosition', { x, y, id });
+        return true;
+    }
+
+    async updateTableOrderId(id: number, orderId?: number) {
+        await this.post('/api/order/updateTableOrderId', { id, orderId });
+        return true;
+    }
+    async addTable(tableName: string) {
+        await this.post('/api/order/createTable', { tableName });
+        return true;
+    }
+
+    async removeTable(id: number) {
+        return await this.post('/api/order/removeTable', { id });
+    }
+
+    async printReceipt(orderId: number): Promise<Blob> {
+        const url = `/api/order/receipt/${orderId}`;
+        const response = await fetch(`${this.serverUrl}${url}`, {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${this.userInfo?.accessToken}`
+            },
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Failed to generate receipt');
+        }
+
+        return await response.blob();
+    }
+
+    async getDashboardStats(): Promise<DashboardStats> {
+        const result = await this.get('/api/dashboard/getDashboardStats');
+        return result;
+    }
+
+    async recordSale(
+        orderId: number,
+        totalAmount: number,
+        taxAmount: number,
+        paymentMethod: string
+    ) {
+        return await this.post('/api/sale/recordSale', { orderId, totalAmount, taxAmount, paymentMethod });
+
+    }
+
+    async getSales(): Promise<SaleRecord[]> {
+        const result = await this.get('/api/sale/getSales');
+        return result ? result.sales : [];
+    }
+
+    async getWeeklySales(): Promise<WeeklySale[]> {
+        const result = await this.get('/api/sale/getWeeklySales');
+        return result ? result.weeklySales : [];
+    }
 }
+
+

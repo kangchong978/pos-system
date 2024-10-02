@@ -1,32 +1,81 @@
 'use client';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { RootState, AppDispatch } from '@/store';
+import { setLoading, setOrders, setError, updateOrderStatus } from '@/redux_slices/orderSlice';
 import Head from 'next/head';
+import { Order, OrderStatus } from '@/common/type/order';
+import toast from 'react-hot-toast';
+import OrderDetailsModal from '@/components/orderDetailsModal';
+import { useCoreClient } from '@/utils/useClient';
+import { handlePrintReceipt } from '@/utils/common';
+import { Eye, Printer } from 'lucide-react';
 
 export default function Orders() {
+    const dispatch = useDispatch<AppDispatch>();
+    const { orders, loading, error } = useSelector((state: RootState) => state.orderSlice);
     const [searchTerm, setSearchTerm] = useState('');
+    const [activeSearchTerm, setActiveSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState('all');
+    const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
 
-    // Sample order data - replace with actual data from your backend
-    const initialOrders = [
-        { id: '1001', customer: 'John Doe', total: 25.99, status: 'Pending', date: '2024-08-28' },
-        { id: '1002', customer: 'Jane Smith', total: 34.50, status: 'Completed', date: '2024-08-27' },
-        { id: '1003', customer: 'Bob Johnson', total: 19.99, status: 'Processing', date: '2024-08-26' },
-        { id: '1004', customer: 'Alice Brown', total: 45.00, status: 'Cancelled', date: '2024-08-25' },
-        { id: '1005', customer: 'Charlie Wilson', total: 29.99, status: 'Completed', date: '2024-08-24' },
-    ];
+    const { coreClient } = useCoreClient(); // Pass true to skip auth check
 
-    const [orders, setOrders] = useState(initialOrders);
+    useEffect(() => {
+        if (coreClient) {
+            fetchOrders();
+        }
+    }, [activeSearchTerm, statusFilter, coreClient]);
 
-    const filteredOrders = orders.filter(order =>
-        (order.id.includes(searchTerm) || order.customer.toLowerCase().includes(searchTerm.toLowerCase())) &&
-        (statusFilter === 'all' || order.status === statusFilter)
-    );
+    const fetchOrders = async () => {
+        if (!coreClient) return;
 
-    const handleStatusChange = (orderId: String, newStatus: String) => {
-        // setOrders(orders.map(order =>
-        //     order.id === orderId ? { ...order, status: newStatus } : order
-        // ));
+        try {
+            dispatch(setLoading(true));
+            const filters: { id?: number; status?: OrderStatus } = {};
+
+            if (activeSearchTerm) {
+                const id = parseInt(activeSearchTerm);
+                if (!isNaN(id)) {
+                    filters.id = id;
+                }
+            }
+
+            if (statusFilter !== 'all') {
+                filters.status = statusFilter as OrderStatus;
+            }
+
+            const orders = await coreClient.getOrders(filters);
+            dispatch(setOrders(orders));
+        } catch (error) {
+            console.error('Failed to fetch orders:', error);
+            dispatch(setError('Failed to fetch orders'));
+            toast.error('Failed to fetch orders');
+        } finally {
+            dispatch(setLoading(false));
+        }
     };
+
+    const handleSearchKeyPress = (event: React.KeyboardEvent<HTMLInputElement>) => {
+        if (event.key === 'Enter') {
+            setActiveSearchTerm(searchTerm);
+        }
+    };
+
+    const handleRowClick = (order: Order) => {
+        setSelectedOrder(order);
+    };
+
+    const handleCloseModal = () => {
+        setSelectedOrder(null);
+    };
+
+    const onPrintReceipt = (orderId: number, event: React.MouseEvent) => {
+        handlePrintReceipt(orderId, event, coreClient, dispatch);
+    };
+
+    if (loading) return <div>Loading...</div>;
+    if (error) return <div>Error: {error}</div>;
 
     return (
         <div className="min-h-screen bg-gray-100">
@@ -38,23 +87,30 @@ export default function Orders() {
                 <h1 className="text-3xl font-bold mb-8 text-red-600">Order Management</h1>
 
                 <div className="mb-6 flex flex-col md:flex-row md:items-center md:justify-between">
-                    <input
-                        type="text"
-                        placeholder="Search orders..."
-                        className="p-2 border rounded w-full md:w-64 mb-4 md:mb-0"
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                    />
+                    <div className="relative">
+                        <input
+                            type="text"
+                            placeholder="Search orders by ID..."
+                            className="p-2 pr-10 border rounded w-full md:w-64 mb-4 md:mb-0"
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            onKeyPress={handleSearchKeyPress}
+                        />
+                        <span className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-500">
+                            <p className='border px-[2px]'>
+                                Enter
+                            </p>
+                        </span>
+                    </div>
                     <select
                         className="p-2 border rounded"
                         value={statusFilter}
                         onChange={(e) => setStatusFilter(e.target.value)}
                     >
                         <option value="all">All Statuses</option>
-                        <option value="Pending">Pending</option>
-                        <option value="Processing">Processing</option>
-                        <option value="Completed">Completed</option>
-                        <option value="Cancelled">Cancelled</option>
+                        <option value="active">Active</option>
+                        <option value="canceled">Canceled</option>
+                        <option value="completed">Completed</option>
                     </select>
                 </div>
 
@@ -63,48 +119,66 @@ export default function Orders() {
                         <thead className="bg-gray-50">
                             <tr>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Order ID</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Updated</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
-                            {filteredOrders.map((order) => (
-                                <tr key={order.id}>
+                            {orders.map((order) => (
+                                <tr
+                                    key={order.id}
+                                    onClick={() => handleRowClick(order)}
+                                    className="cursor-pointer hover:bg-gray-50"
+                                >
                                     <td className="px-6 py-4 whitespace-nowrap">{order.id}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap">{order.customer}</td>
                                     <td className="px-6 py-4 whitespace-nowrap">${order.total.toFixed(2)}</td>
                                     <td className="px-6 py-4 whitespace-nowrap">
                                         <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
-                      ${order.status === 'Completed' ? 'bg-green-100 text-green-800' :
-                                                order.status === 'Pending' ? 'bg-yellow-100 text-yellow-800' :
-                                                    order.status === 'Processing' ? 'bg-blue-100 text-blue-800' :
-                                                        'bg-red-100 text-red-800'}`}>
+                                            ${order.status === 'completed' ? 'bg-green-100 text-green-800' :
+                                                order.status === 'active' ? 'bg-yellow-100 text-yellow-800' :
+                                                    'bg-red-100 text-red-800'}`}>
                                             {order.status}
                                         </span>
                                     </td>
-                                    <td className="px-6 py-4 whitespace-nowrap">{order.date}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                        <select
-                                            className="text-indigo-600 hover:text-indigo-900"
-                                            value={order.status}
-                                            onChange={(e) => handleStatusChange(order.id, e.target.value)}
+                                    <td className="px-6 py-4 whitespace-nowrap">
+                                        {new Date(order.createDate).toLocaleString()}
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap">
+                                        {new Date(order.updateDate).toLocaleString()}
+                                    </td>
+                                    <td className="flex px-6 py-4 whitespace-nowrap text-sm items-center">
+                                        <button
+                                            className="flex text-blue-600 hover:text-blue-900 mr-6"
+                                            onClick={() => handleRowClick(order)}
                                         >
-                                            <option value="Pending">Pending</option>
-                                            <option value="Processing">Processing</option>
-                                            <option value="Completed">Completed</option>
-                                            <option value="Cancelled">Cancelled</option>
-                                        </select>
+                                            <Eye style={{ marginRight: '5px' }}></Eye>
+                                            View
+                                        </button>
+                                        <button
+                                            className="flex text-green-600 hover:text-green-900 items-center"
+                                            onClick={(e) => onPrintReceipt(order.id, e)}
+                                        >
+                                            <Printer style={{ marginRight: '5px' }}></Printer>
+                                            Print
+                                        </button>
                                     </td>
                                 </tr>
                             ))}
                         </tbody>
                     </table>
                 </div>
+
+                {selectedOrder && (
+                    <OrderDetailsModal
+                        order={selectedOrder}
+                        onClose={handleCloseModal}
+                        onPrint={(e) => onPrintReceipt(selectedOrder.id, e)}
+                    />
+                )}
             </main>
         </div>
     );
-};
-
+}

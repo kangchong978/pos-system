@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import Image from 'next/image';
+import { MyFile } from '@/common/type/product';
 
 interface ImageGalleryProps {
     files: MyFile[] | undefined;
@@ -37,9 +38,9 @@ const ImageGallery: React.FC<ImageGalleryProps> = ({ files, onRemove }) => {
 
     return (
         <div>
-            <div className="relative">
+            <div className="relative h-[300px]">
                 {imageUrls.length > 0 && (
-                    <div className="bg-red-50 rounded-lg p-4 mb-4 -[300px] h-[300px] flex items-center justify-center">
+                    <div className="bg-red-50 rounded-lg p-4 mb-4 h-full  flex items-center justify-center">
                         <Image
                             src={imageUrls[currentIndex]}
                             alt={`Image ${currentIndex + 1}`}

@@ -3,40 +3,83 @@ import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import getFirstCharacters from '@/common/common';
-import CoreClient from '@/utils/client';
 import EmployeeModal from './empoyeeModal';
+import { useCoreClient } from '@/utils/useClient';
+import { useDispatch } from 'react-redux';
+import { AppDispatch } from '@/store';
+import { setLoading } from '@/redux_slices/appSlice';
+
 
 const Sidebar = () => {
     const pathname = usePathname();
     const [usernameShort, setUsernameShort] = useState('');
     const [accessibleRoute, setAccessibleRoute] = useState<RouteAuth[]>([]);
     const [employeeProfile, setEmployeeProfile] = useState<Employee | null>(null);
+    const [companyLogo, setCompanyLogo] = useState<string | null>(null);
 
-    var client = CoreClient.getInstance();
+    const { isInitialized, coreClient } = useCoreClient(pathname == '/login' || pathname == '/logout');
+    const dispatch = useDispatch<AppDispatch>();
+
+
+
     useEffect(() => {
-        if (client.getUserInfo) {
-            setUsernameShort(getFirstCharacters(client.getUserInfo.username));
-            setAccessibleRoute(client.getUserInfo.accessibleRoute);
-        }
-    }, [pathname])
+        if (isInitialized && coreClient) {
+            const userInfo = coreClient.getUserInfo;
+            if (userInfo) {
+                setUsernameShort(getFirstCharacters(userInfo.username));
+                setAccessibleRoute(userInfo.accessibleRoute);
+            }
 
+            const fetchCompanySettings = async () => {
+                dispatch(setLoading(true));
+                try {
+                    const settings = await coreClient.getSettings();
+                    if (settings && typeof settings.company_logo === 'string') {
+                        setCompanyLogo('http://localhost:6001' + settings.company_logo);
+                    }
+                } catch (error) {
+                    console.error('Error fetching company settings:', error);
+                } finally {
+                    dispatch(setLoading(false));
+                }
+            };
+
+            fetchCompanySettings();
+        }
+    }, [isInitialized, coreClient, dispatch]);
 
     const isActive = (path: string) => pathname === path;
 
-
     const onEditProfile = () => {
-        const userInfo = client.getUserInfo;
-        const employee: Employee = { 'email': userInfo?.email, 'phoneNumber': userInfo?.phoneNumber, 'role': userInfo?.role.toString(), 'username': userInfo?.username };
-        setEmployeeProfile(employee);
+        if (coreClient) {
+            const userInfo = coreClient.getUserInfo;
+            if (userInfo) {
+                const employee: Employee = {
+                    email: userInfo.email,
+                    phoneNumber: userInfo.phoneNumber,
+                    role: userInfo.role.toString(),
+                    username: userInfo.username
+                };
+                setEmployeeProfile(employee);
+            }
+        }
     }
 
-    if (pathname === '/login') return null; // Updated condition
+    if (pathname == '/login') return (<></>)
+
 
     return (
         <div className="w-16 bg-white h-screen fixed left-0 top-0 flex flex-col items-center py-4">
             <div className="mb-8">
-                <img src="/wendys-logo.png" alt="Wendy's Logo" className="w-15 h-10" />
+                {companyLogo ? (
+                    <img src={companyLogo} alt="Company Logo" className="w-15 h-10 object-contain" />
+                ) : (
+                    <div className="w-15 h-10 bg-gray-200 flex items-center justify-center">
+                        <span className="text-gray-400 text-xs">No Logo</span>
+                    </div>
+                )}
             </div>
+
             <nav className="flex flex-col items-center space-y-6">
                 {[
                     { href: '/pos', icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 2a10 10 0 1 1 0 20 10 10 0 1 1 0-20zm0 6v8m-4-4h8" /> },
@@ -67,29 +110,28 @@ const Sidebar = () => {
             </div>
 
             <div className="flex flex-col items-center space-y-6">
-
-                <Link
-                    href={'/logout'}
-                    className={'text-gray-400 hover:text-red-500'}
-                >
+                <Link href={'/logout'} className={'text-gray-400 hover:text-red-500'}>
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 3H7C5.89543 3 5 3.89543 5 5V19C5 20.1046 5.89543 21 7 21H15" /><path d="M19 12L15 8M19 12L15 16M19 12H9" stroke-linecap="round" strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} /></svg>
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 3H7C5.89543 3 5 3.89543 5 5V19C5 20.1046 5.89543 21 7 21H15" />
+                        <path d="M19 12L15 8M19 12L15 16M19 12H9" strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} />
+                    </svg>
                 </Link>
             </div>
 
-            {employeeProfile && <EmployeeModal
-                employee={employeeProfile}
-                setEmployee={setEmployeeProfile}
-                onClose={() => setEmployeeProfile(null)}
-                onSubmit={function (employee: any): void {
-                    throw new Error('Function not implemented.');
-                }}
-                isEdit={false}
-                isProfile={true}
-            />}
+            {employeeProfile && (
+                <EmployeeModal
+                    employee={employeeProfile}
+                    setEmployee={setEmployeeProfile}
+                    onClose={() => setEmployeeProfile(null)}
+                    onSubmit={function (employee: any): void {
+                        throw new Error('Function not implemented.');
+                    }}
+                    isEdit={false}
+                    isProfile={true}
+                />
+            )}
         </div>
     );
 };
 
 export default Sidebar;
-

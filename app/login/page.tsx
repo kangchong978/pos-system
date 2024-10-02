@@ -2,11 +2,13 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import CoreClient from '@/utils/client';
 import toast from 'react-hot-toast';
+import { useDispatch } from 'react-redux';
+import { AppDispatch } from '@/store';
+import { setLoading } from '@/redux_slices/appSlice';
+import { useCoreClient } from '@/utils/useClient';
 
 enum LoginPageState { LoginState, ResetState };
-
 
 export default function Login() {
     const [pageState, setPageState] = useState<LoginPageState>(LoginPageState.LoginState);
@@ -17,6 +19,8 @@ export default function Login() {
     const [error, setError] = useState('');
 
     const router = useRouter();
+    const dispatch = useDispatch<AppDispatch>();
+    const { coreClient } = useCoreClient(true); // Pass true to skip auth check
 
     const passwordValidation = (v: string) => {
         const regex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{6,}$/;
@@ -36,26 +40,43 @@ export default function Login() {
             return;
         }
 
-        const client = CoreClient.getInstance();
-        var result = await client.resetPassword({ newPassword, newPasswordConfirm });
-        if (result) {
-            router.push('/dashboard');
+        dispatch(setLoading(true));
+        try {
+            if (coreClient) {
+                const result = await coreClient.resetPassword({ newPassword, newPasswordConfirm });
+                if (result) {
+                    router.push('/dashboard');
+                }
+            }
+        } catch (error) {
+            console.error('Password reset failed:', error);
+            toast.error('Failed to reset password');
+        } finally {
+            dispatch(setLoading(false));
         }
     }
 
     const handleLogin = async () => {
-        const client = CoreClient.getInstance();
-
-        var result = await client.login({ username, password });
-        if (result) {
-            if (result.updatePasswordRequired) {
-                setPageState(LoginPageState.ResetState)
-            } else {
-                router.push('/dashboard');
+        dispatch(setLoading(true));
+        try {
+            if (coreClient) {
+                const result = await coreClient.login({ username, password });
+                if (result) {
+                    if (result.updatePasswordRequired) {
+                        setPageState(LoginPageState.ResetState);
+                    } else {
+                        router.push('/');
+                    }
+                }
             }
+        } catch (error) {
+            console.error('Login failed:', error);
+            toast.error('Login failed');
+        } finally {
+            dispatch(setLoading(false));
         }
-
     };
+
     if (pageState == LoginPageState.LoginState)
         return (
             <div className="min-h-screen flex items-center justify-center bg-gray-100">
@@ -90,54 +111,50 @@ export default function Login() {
                     >
                         Log In
                     </button>
-
                 </div>
             </div>
         );
     else if (pageState == LoginPageState.ResetState)
         return (
-            <div>
-                <div className="min-h-screen flex items-center justify-center bg-gray-100">
-                    <div className="bg-white p-8 rounded-lg shadow-md w-96">
-                        <h1 className="text-2xl font-bold mb-6 text-center">Hi {username}, please set your password</h1>
+            <div className="min-h-screen flex items-center justify-center bg-gray-100">
+                <div className="bg-white p-8 rounded-lg shadow-md w-96">
+                    <h1 className="text-2xl font-bold mb-6 text-center">Hi {username}, please set your password</h1>
 
-                        <div className="mb-6">
-                            <label htmlFor="password" className="block text-sm font-medium text-gray-700">New Password</label>
-                            <input
-                                type="password"
-                                id="newPassword"
-                                onChange={(e) => setNewPassword(e.target.value)}
-                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-red-300 focus:ring focus:ring-red-200 focus:ring-opacity-50"
-                                required
-                            />
-                        </div>
-
-                        <div className="mb-6">
-                            <label htmlFor="password" className="block text-sm font-medium text-gray-700">Confirm Password</label>
-                            <input
-                                type="password"
-                                id="newPasswordConfirm"
-                                onChange={(e) => setNewPasswordConfirm(e.target.value)}
-                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-red-300 focus:ring focus:ring-red-200 focus:ring-opacity-50"
-                                required
-                            />
-                        </div>
-
-                        {error && (
-                            <p className='text-red-800 mb-4' dangerouslySetInnerHTML={{ __html: error }} />
-                        )}
-
-                        <button
-                            onClick={handleResetPassword}
-                            className="w-full bg-red-600 text-white py-2 px-4 rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-50"
-                        >
-                            Confirm
-                        </button>
-
+                    <div className="mb-6">
+                        <label htmlFor="newPassword" className="block text-sm font-medium text-gray-700">New Password</label>
+                        <input
+                            type="password"
+                            id="newPassword"
+                            onChange={(e) => setNewPassword(e.target.value)}
+                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-red-300 focus:ring focus:ring-red-200 focus:ring-opacity-50"
+                            required
+                        />
                     </div>
+
+                    <div className="mb-6">
+                        <label htmlFor="newPasswordConfirm" className="block text-sm font-medium text-gray-700">Confirm Password</label>
+                        <input
+                            type="password"
+                            id="newPasswordConfirm"
+                            onChange={(e) => setNewPasswordConfirm(e.target.value)}
+                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-red-300 focus:ring focus:ring-red-200 focus:ring-opacity-50"
+                            required
+                        />
+                    </div>
+
+                    {error && (
+                        <p className='text-red-800 mb-4' dangerouslySetInnerHTML={{ __html: error }} />
+                    )}
+
+                    <button
+                        onClick={handleResetPassword}
+                        className="w-full bg-red-600 text-white py-2 px-4 rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-50"
+                    >
+                        Confirm
+                    </button>
                 </div>
             </div>
         );
 
-    return (<></>)
+    return null;
 }

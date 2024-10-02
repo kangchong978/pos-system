@@ -1,9 +1,9 @@
-const buildCategorieseChipsEdit = (categories: string, onSelectCallback: Function) => {
-    if (categories == '') return;
-    const convertedCategories = categories.split(',').map(role => role.trim())
+const buildCategorieseChipsEdit = (categories: string[], onSelectCallback: Function) => {
+    if (categories.length == 0) return;
+
 
     return (<>
-        {convertedCategories.map((e) =>
+        {categories.map((e) =>
             <div className="flex flex-wrap items-center bg-red-500 text-white px-2 my-1 mr-1 sm:rounded inline-flex">
                 <div className="cursor-pointer" >
                     <p>{e}</p>

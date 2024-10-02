@@ -7,8 +7,7 @@ export default function EmployeesLayout({
 }) {
     return (
         <section>
-            <CheckUserInfo />
-            {/* Include shared UI here e.g. a header or sidebar */}
+
             <nav></nav>
 
             {children}

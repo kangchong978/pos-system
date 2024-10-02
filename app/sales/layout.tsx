@@ -1,5 +1,3 @@
-import { CheckUserInfo } from "@/components/authComponent"
-
 export default function SalesLayout({
     children, // will be a page or nested layout
 }: {
@@ -7,7 +5,6 @@ export default function SalesLayout({
 }) {
     return (
         <section>
-            <CheckUserInfo />
             {/* Include shared UI here e.g. a header or sidebar */}
             <nav></nav>
 

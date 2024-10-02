@@ -2,20 +2,26 @@
 
 import React, { useEffect, useState } from 'react';
 import Head from 'next/head';
-import CoreClient from '@/utils/client';
 import EmployeeModal from '../../components/empoyeeModal';
 import toast from 'react-hot-toast';
 import TempPasswordModal from '../../components/tempPasswordModal';
+import { useCoreClient } from '@/utils/useClient';
+import { useDispatch } from 'react-redux';
+import { AppDispatch } from '@/store';
+import { setLoading } from '@/redux_slices/appSlice';
+import LoadingScreen from '@/components/LoadingScreen';
 
 export default function Employees() {
     const [searchTerm, setSearchTerm] = useState('');
     const [isEdit, setIsEdit] = useState(false);
-
-
     const [employees, setEmployees] = useState<Employee[]>([]);
     const [currentEmployee, setCurrentEmployee] = useState<Employee | null>(null);
     const [savedTempPassword, setSavedTempPassword] = useState<{ id: string; tempPassword: string }[]>([]);
     const [tempPassword, setTempPassword] = useState<string>('');
+    const [isPageLoading, setIsPageLoading] = useState(true);
+
+    const { isInitialized, coreClient, setAppLoading } = useCoreClient();
+    const dispatch = useDispatch<AppDispatch>();
 
     const filteredEmployees = employees.filter(employee =>
         employee.username?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -24,15 +30,26 @@ export default function Employees() {
     );
 
     const loadUsers = async () => {
-        const client = CoreClient.getInstance();
-        var result = await client.getEmployees();
-        setEmployees(result);
+        if (!coreClient) return;
+        setIsPageLoading(true);
+        dispatch(setLoading(true));
+        try {
+            const result = await coreClient.getEmployees();
+            setEmployees(result);
+        } catch (error) {
+            console.error('Failed to load employees:', error);
+            toast.error('Failed to load employees');
+        } finally {
+            setIsPageLoading(false);
+            dispatch(setLoading(false));
+        }
     }
 
     useEffect(() => {
-        loadUsers();
-    }, [])
-
+        if (isInitialized && coreClient) {
+            loadUsers();
+        }
+    }, [isInitialized, coreClient]);
 
     const handleEditEmployee = (employee: Employee) => {
         setIsEdit(true);
@@ -42,56 +59,71 @@ export default function Employees() {
     const handleAddEmployee = () => {
         setIsEdit(false);
         setCurrentEmployee({ username: '', password: '', email: '', phoneNumber: '', role: '' });
-
     }
 
     const handleDeleteEmployee = async (data: Employee) => {
-        // submit
-        const client = CoreClient.getInstance();
-        await client.removeUser(data.id);
-        loadUsers();
-    }
-
-
-    const handleResetPasswordEmployee = async (data: Employee) => {
-        // submit
-        const client = CoreClient.getInstance();
-        // await client.resetPasswordUser(data.id);
-        loadUsers();
+        if (!coreClient) return;
+        dispatch(setLoading(true));
+        try {
+            await coreClient.removeUser(data.id);
+            await loadUsers();
+            toast.success('Employee deleted successfully');
+        } catch (error) {
+            console.error('Failed to delete employee:', error);
+            toast.error('Failed to delete employee');
+        } finally {
+            dispatch(setLoading(false));
+        }
     }
 
     const handleSubmitEmployee = async (data: Employee) => {
-        // form validation
-        if (data.email == '' || data.phoneNumber == '' || data.username == '' || data.role?.length == 0) {
-            toast.error("Please fill in all informations.");
+        if (!coreClient) return;
+        if (data.email === '' || data.phoneNumber === '' || data.username === '' || data.role?.length === 0) {
+            toast.error("Please fill in all information.");
             return;
         }
-        // submit
-        const client = CoreClient.getInstance();
-        // const submitFunc = (isEdit) ? client.updateUser : client.registerUser;
-        if (isEdit)
-            await client.updateUser(data)
-        else {
-            var result = await client.registerUser(data)
-            if (result) {
-                setSavedTempPassword([{ 'id': result.id, 'tempPassword': result.tempPassword }, ...savedTempPassword]);
-                setTempPassword(result.tempPassword);
-            }
-        }
 
-        setCurrentEmployee(null);
-        loadUsers();
-        toast.success('Employee updated.');
+        dispatch(setLoading(true));
+        try {
+            if (isEdit) {
+                await coreClient.updateUser(data);
+            } else {
+                const result = await coreClient.registerUser(data);
+                if (result) {
+                    setSavedTempPassword([{ 'id': result.id, 'tempPassword': result.tempPassword }, ...savedTempPassword]);
+                    setTempPassword(result.tempPassword);
+                }
+            }
+            setCurrentEmployee(null);
+            await loadUsers();
+            toast.success(isEdit ? 'Employee updated successfully' : 'Employee added successfully');
+        } catch (error) {
+            console.error('Failed to submit employee:', error);
+            toast.error('Failed to submit employee');
+        } finally {
+            dispatch(setLoading(false));
+        }
     }
 
-
     const buildRoleChips = (roles: string) => {
-        if (roles == '') return;
-        const convertedRoles = roles.split(',').map(role => role.trim())
+        if (roles === '') return null;
+        const convertedRoles = roles.split(',').map(role => role.trim());
 
-        return (<>
-            {convertedRoles.map((e) => <div className="flex"> <div className="bg-gray-300 text-white px-2 my-1 mr-1 sm:rounded"><p>{e}</p></div></div>)}
-        </>);
+        return (
+            <>
+                {convertedRoles.map((e, index) => (
+                    <div key={index} className="flex">
+                        <div className="bg-gray-300 text-white px-2 my-1 mr-1 sm:rounded">
+                            <p>{e}</p>
+                        </div>
+                    </div>
+                ))}
+            </>
+        );
+    }
+
+    if (isPageLoading) {
+        return <LoadingScreen />;
     }
 
     return (
@@ -113,7 +145,7 @@ export default function Employees() {
                     />
                     <button
                         className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
-                        onClick={() => handleAddEmployee()}
+                        onClick={handleAddEmployee}
                     >
                         Add Employee
                     </button>
@@ -132,7 +164,7 @@ export default function Employees() {
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
                             {filteredEmployees.map((employee) => {
-                                const tempPassowrd = savedTempPassword.find(item => item.id === employee.id)?.tempPassword;
+                                const tempPassword = savedTempPassword.find(item => item.id === employee.id)?.tempPassword;
 
                                 return (
                                     <tr key={employee.username}>
@@ -153,13 +185,9 @@ export default function Employees() {
                                             >
                                                 Delete
                                             </button>
-                                            {/* <button
-                                                className="text-gray-400 hover:text-red-500"
-                                                onClick={() => handleResetPasswordEmployee(employee)}
-                                            >
-                                                Reset Password
-                                            </button> */}
-                                            <button className='flex' onClick={() => setTempPassword(tempPassowrd ?? '')}> {tempPassowrd}</button>
+                                            <button className='flex' onClick={() => setTempPassword(tempPassword ?? '')}>
+                                                {tempPassword}
+                                            </button>
                                         </td>
                                     </tr>
                                 )
@@ -176,16 +204,11 @@ export default function Employees() {
                     isEdit={isEdit}
                     isProfile={false}
                 />}
-                {
-                    tempPassword && <TempPasswordModal
-                        tempPassword={tempPassword}
-                        onClose={() => setTempPassword('')}
-                    />
-                }
-
-
+                {tempPassword && <TempPasswordModal
+                    tempPassword={tempPassword}
+                    onClose={() => setTempPassword('')}
+                />}
             </main>
         </div>
     );
-};
-
+}

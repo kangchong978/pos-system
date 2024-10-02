@@ -1,23 +1,16 @@
 'use client';
+import { Category } from '@/common/type/product';
 import React, { useState } from 'react';
 
-const categories = [
-    { id: 'juices', icon: '🍺', name: 'Juices' },
-    { id: 'fries', icon: '🍟', name: 'Fries' },
-    { id: 'fries', icon: '🍟', name: 'Fries' },
-    { id: 'fries', icon: '🍟', name: 'Fries' },
-    { id: 'fries', icon: '🍟', name: 'Fries' },
-    { id: 'fries', icon: '🍟', name: 'Fries' },
-    { id: 'fries', icon: '🍟', name: 'Fries' },
-    { id: 'fries', icon: '🍟', name: 'Fries' },
-    { id: 'fries', icon: '🍟', name: 'Fries' },
-    { id: 'fries', icon: '🍟', name: 'Fries' },
-    { id: 'fries', icon: '🍟', name: 'Fries' },
-    // Add more categories as needed
-];
 
-const CategoryList = () => {
-    const [selectedCategory, setSelectedCategory] = useState('juices');
+interface CategoryListProps {
+    categories: Category[];
+    selectedCategory: Category;
+    onSelectedCallback: Function;
+}
+
+const CategoryList: React.FC<CategoryListProps> = ({ categories, selectedCategory, onSelectedCallback }) => {
+    // const [selectedCategory, setSelectedCategory] = useState<number>();
 
     return (
         <div className='flex'>
@@ -26,24 +19,24 @@ const CategoryList = () => {
                     <button
                         key={category.id}
                         className={`flex items-center space-x-2 px-4 py-2 rounded-full whitespace-nowrap
-            ${selectedCategory === category.id
+            ${selectedCategory.id === category.id
                                 ? 'bg-red-100 border-2 border-red-500'
                                 : 'bg-white'}`}
-                        onClick={() => setSelectedCategory(category.id)}
+                        onClick={() => onSelectedCallback(category)}
                     >
-                        <span className="text-xl">{category.icon}</span>
-                        <span className={`${selectedCategory === category.id ? 'text-red-500' : 'text-gray-700'}`}>
+                        {/* <span className="text-xl">{category.icon}</span> */}
+                        <span className={`${selectedCategory.id === category.id ? 'text-red-500' : 'text-gray-700'}`}>
                             {category.name}
                         </span>
                     </button>
                 ))}
 
             </div>
-            <div className="flex items-center ml-4">
+            {/* <div className="flex items-center ml-4">
                 <button className="flex items-center justify-center w-10 h-10 bg-white rounded-full text-gray-500">
                     +
                 </button>
-            </div>
+            </div> */}
         </div>
     );
 };

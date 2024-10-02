@@ -1,128 +1,273 @@
-'use client';
-import CoreClient from '@/utils/client';
-import React, { useEffect, useState } from 'react';
-import toast from 'react-hot-toast';
+'use client'
 
+import React, { useEffect, useState, ChangeEvent } from 'react';
+import styles from '@/styles/settings.module.css';
+import CoreClient from '@/utils/client';
+import toast from 'react-hot-toast';
+import { useDispatch } from 'react-redux';
+import { AppDispatch } from '@/store';
+import { useCoreClient } from '@/utils/useClient';
+import { setError, setLoading } from '@/redux_slices/appSlice';
+import LoadingScreen from '@/components/LoadingScreen';
 
 
 export default function Settings() {
-    const [oriRoutesAuth, setOriRoutesAuth] = useState<RouteAuth[]>([]);
+    const dispatch = useDispatch<AppDispatch>();
+    const { coreClient, isInitialized, isLoading } = useCoreClient();
+    const [companyInfo, setCompanyInfo] = useState<CompanyInfo>({
+        company_name: '',
+        company_logo: null,
+        tax: 0,
+        address: '',
+        email: '',
+        website: '',
+        phone_number: '',
+        receipt_footer_text: '',
+    });
     const [routesAuth, setRoutesAuth] = useState<RouteAuth[]>([]);
     const [changed, setChanged] = useState<boolean>(false);
 
-
-
     useEffect(() => {
-        loadRoutesAuth();
-    }, [])
-
-    const handleSubmitRoutesAuth = async () => {
-        //
-        if (!changed) { toast.error('No changes.'); return; }
-
-        const client = CoreClient.getInstance();
-        await client.updateRouteAuth(routesAuth);
-
-        setOriRoutesAuth(routesAuth);
-
-        setChanged(false);
-        toast.success('Changes saved.')
-
-    }
-
-    const handleResetRoutesAuth = () => {
-        //
-        if (!changed) { toast.error('No changes.'); return; }
-
-        setRoutesAuth(oriRoutesAuth);
-        setChanged(false);
-    }
-
-    const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-        const { name, value } = e.target;
-        // Find the index of the route to update
-        const index = routesAuth.findIndex(route => route.route === name);
-        if (index !== -1) {
-            // Create a new array with the updated route
-            const updatedRoutesAuth = routesAuth.map((route, i) =>
-                i === index ? { ...route, role: value } : route
-            );
-            setRoutesAuth(updatedRoutesAuth); // Update the state with the new array
+        if (isInitialized && coreClient) {
+            loadInitialData();
         }
+    }, [isInitialized, coreClient]);
 
-        if (!changed) setChanged(true);
+    const loadInitialData = async () => {
+        if (!coreClient) return;
+        dispatch(setLoading(true));
+        try {
+            const settings = await coreClient.getSettings();
+            setCompanyInfo(settings);
+
+            const result = await coreClient.getRoutesAuth();
+            setRoutesAuth(result);
+        } catch (error) {
+            console.error('Error loading initial data:', error);
+            dispatch(setError('Failed to load settings'));
+            toast.error('Failed to load settings. Please try again.');
+        } finally {
+            dispatch(setLoading(false));
+        }
     };
 
-    const loadRoutesAuth = async () => {
-        const client = CoreClient.getInstance();
+    const handleRouteAuthChange = (route: string, value: string): void => {
+        setRoutesAuth(prev => prev.map(r => r.route === route ? { ...r, role: value } : r));
+        setChanged(true);
+    };
 
-        var result = await client.getRoutesAuth();
-        console.log(result);
-        setRoutesAuth(result);
-        setOriRoutesAuth(result);
+    const handleCompanyInfoChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>): void => {
+        const { name, value, type } = e.target;
+        if (type === 'file') {
+            const fileInput = e.target as HTMLInputElement;
+            const files = fileInput.files;
+            if (files && files[0]) {
+                setCompanyInfo(prev => ({ ...prev, [name]: files[0] }));
+            }
+        } else if (name === 'tax') {
+            setCompanyInfo(prev => ({ ...prev, [name]: parseFloat(value) }));
+        } else {
+            setCompanyInfo(prev => ({ ...prev, [name]: value }));
+        }
+        setChanged(true);
+    };
+
+    const handleSubmit = async (): Promise<void> => {
+        if (!changed) {
+            toast.error('No changes.');
+            return;
+        }
+        if (!coreClient) {
+            toast.error('Client not initialized');
+            return;
+        }
+
+        dispatch(setLoading(true));
+        try {
+            let updatedCompanyInfo = { ...companyInfo };
+
+            // Handle logo upload if it's a File object
+            if (companyInfo.company_logo instanceof File) {
+                const logoUrl = await coreClient.uploadCompanyLogo(companyInfo.company_logo);
+                updatedCompanyInfo.company_logo = logoUrl;
+            }
+
+            const settingsUpdated = await coreClient.updateSettings(updatedCompanyInfo);
+
+            // Update route auth
+            await coreClient.updateRouteAuth(routesAuth);
+
+            if (settingsUpdated) {
+                setChanged(false);
+                toast.success('Changes saved successfully.');
+                // Refresh the data to ensure we have the latest state
+                loadInitialData();
+            } else {
+                toast.error('Failed to save changes. Please try again.');
+            }
+        } catch (error) {
+            console.error('Error updating settings:', error);
+            dispatch(setError('Failed to save changes'));
+            toast.error('Failed to save changes. Please try again.');
+        } finally {
+            dispatch(setLoading(false));
+        }
+    };
+
+    if (isLoading || !isInitialized || !coreClient) {
+        return <LoadingScreen />;
     }
 
-
     return (
-        <div className="min-h-screen bg-gray-100">
-            <main className="container mx-auto px-4 py-8">
-                <div className="flex justify-between items-center mb-8">
-                    <div className="flex items-center">
-                        <h1 className="text-2xl font-bold ml-4 text-red-500">Settings</h1>
+        <div className={styles.container}>
+            <h1 className={styles.title}>Settings</h1>
+
+            <div className={styles.card}>
+                <h2 className={styles.cardTitle}>Company Information</h2>
+                <div className={styles.cardContent}>
+                    <div className={styles.formGroup}>
+                        <label htmlFor="company-name">Company Name</label>
+                        <input
+                            id="company-name"
+                            name="company_name"
+                            value={companyInfo.company_name}
+                            onChange={handleCompanyInfoChange}
+                            placeholder="Enter company name"
+                            className={styles.input}
+                        />
                     </div>
-                    <div className="text-red-500">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-                        </svg>
+                    <div className={styles.formGroup}>
+                        <label htmlFor="company-address">Address</label>
+                        <input
+                            id="company-address"
+                            name="address"
+                            value={companyInfo.address}
+                            onChange={handleCompanyInfoChange}
+                            placeholder="Enter company address"
+                            className={styles.input}
+                        />
+                    </div>
+                    <div className={styles.formGroup}>
+                        <label htmlFor="company-email">Email</label>
+                        <input
+                            id="company-email"
+                            name="email"
+                            type="email"
+                            value={companyInfo.email}
+                            onChange={handleCompanyInfoChange}
+                            placeholder="Enter company email"
+                            className={styles.input}
+                        />
+                    </div>
+                    <div className={styles.formGroup}>
+                        <label htmlFor="company-website">Website</label>
+                        <input
+                            id="company-website"
+                            name="website"
+                            value={companyInfo.website}
+                            onChange={handleCompanyInfoChange}
+                            placeholder="Enter company website"
+                            className={styles.input}
+                        />
+                    </div>
+                    <div className={styles.formGroup}>
+                        <label htmlFor="company-phone">Phone Number</label>
+                        <input
+                            id="company-phone"
+                            name="phone_number"
+                            value={companyInfo.phone_number}
+                            onChange={handleCompanyInfoChange}
+                            placeholder="Enter company phone number"
+                            className={styles.input}
+                        />
+                    </div>
+                    <div className={styles.formGroup}>
+                        <label htmlFor="company-tax">Tax Rate (%)</label>
+                        <input
+                            id="company-tax"
+                            name="tax"
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            value={companyInfo.tax}
+                            onChange={handleCompanyInfoChange}
+                            placeholder="0.00"
+                            className={styles.input}
+                        />
+                    </div>
+                    <div className={styles.formGroup}>
+                        <label htmlFor="company-logo">Company Logo</label>
+                        <input
+                            id="company-logo"
+                            name="company_logo"
+                            type="file"
+                            accept="image/*"
+                            onChange={handleCompanyInfoChange}
+                            className={styles.input}
+                        />
+                        {companyInfo.company_logo && (
+                            <div className={styles.logoPreview}>
+                                <img
+                                    src={typeof companyInfo.company_logo === 'string'
+                                        ? 'http://localhost:6001' + companyInfo.company_logo
+                                        : URL.createObjectURL(companyInfo.company_logo)
+                                    }
+                                    alt="Company logo preview"
+                                />
+                            </div>
+                        )}
+                    </div>
+                    <div className={styles.formGroup}>
+                        <label htmlFor="receipt-footer">Receipt Footer Text</label>
+                        <textarea
+                            id="receipt-footer"
+                            name="receipt_footer_text"
+                            value={companyInfo.receipt_footer_text}
+                            onChange={handleCompanyInfoChange}
+                            placeholder="Enter receipt footer text"
+                            className={styles.textarea}
+                        />
                     </div>
                 </div>
-                <div className="bg-white shadow overflow-hidden sm:rounded-lg">
-                    <table className="min-w-full divide-y divide-gray-200">
-                        <thead className="bg-gray-50">
+            </div>
+
+            <div className={styles.card}>
+                <h2 className={styles.cardTitle}>Page Access Permissions</h2>
+                <div className={styles.cardContent}>
+                    <table className={styles.table}>
+                        <thead>
                             <tr>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Route</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Authorized Role</th>
+                                <th>Route</th>
+                                <th>Authorized Role</th>
                             </tr>
                         </thead>
-                        <tbody className="bg-white divide-y divide-gray-200">
-                            {routesAuth.map((route) => (
-                                <tr>
-                                    <td className="px-6 py-4 whitespace-nowrap">
-                                        <span className={'px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-blue-80 mr-4'}>
-                                            {route.route}
-                                        </span>
-
-                                    </td>
+                        <tbody>
+                            {routesAuth?.map((route) => (
+                                <tr key={route.route}>
+                                    <td>{route.route}</td>
                                     <td>
-                                        <textarea value={route.role} name={route.route} placeholder="" className="w-auto p-2 mb-2 border rounded " onChange={handleInputChange}>
-                                        </textarea>
+                                        <textarea
+                                            value={route.role}
+                                            onChange={(e: ChangeEvent<HTMLTextAreaElement>) => handleRouteAuthChange(route.route!, e.target.value)}
+                                            placeholder="Enter authorized roles"
+                                            className={styles.textarea}
+                                        />
                                     </td>
                                 </tr>
                             ))}
                         </tbody>
                     </table>
-
-
                 </div>
+            </div>
 
-                <div className="button-group mt-4 flex justify-end">
-                    <button
-                        className="bg-gray-300 text-white px-4 py-2 rounded hover:bg-gray-500 mr-2"
-                        onClick={() => handleResetRoutesAuth()}
-                    >
-                        Cancel
-                    </button>
-                    <button
-                        className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-800"
-                        onClick={() => handleSubmitRoutesAuth()}
-                    >
-                        Submit
-                    </button>
-                </div>
-
-            </main>
+            <div className={styles.buttonGroup}>
+                <button className={`${styles.button} ${styles.buttonOutline}`} onClick={() => window.location.reload()}>
+                    Cancel
+                </button>
+                <button className={styles.button} onClick={handleSubmit}>
+                    Save Changes
+                </button>
+            </div>
         </div>
     );
-
-
 }

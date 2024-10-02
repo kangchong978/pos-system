@@ -1,58 +1,70 @@
 'use client';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Image from 'next/image';
 import EditProductModal from '@/components/editProductModal';
-import CoreClient from '@/utils/client';
 import toast from 'react-hot-toast';
 import { buildCategoriesChips } from '@/components/categoriesChips';
+import { Product } from '@/common/type/product';
+import { useDispatch, useSelector } from 'react-redux';
+import { RootState, AppDispatch } from '@/store';
+import { setLoading, setError } from '@/redux_slices/appSlice';
+import { useCoreClient } from '@/utils/useClient';
+import LoadingScreen from '@/components/LoadingScreen';
 
 export default function Products() {
+    const dispatch = useDispatch<AppDispatch>();
+    const { coreClient, isInitialized, isLoading } = useCoreClient();
     const [searchTerm, setSearchTerm] = useState('');
     const [products, setProducts] = useState<Product[]>([]);
     const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
     const [isEndOfList, setEndOfList] = useState<boolean>(false);
-    var page = 1;
-    var loading = false;
-
+    const [page, setPage] = useState(1);
+    const [isLoadingMore, setIsLoadingMore] = useState(false);
 
     useEffect(() => {
-
-        loadProducts();
-        window.addEventListener('scroll', handleScroll); // Add scroll event listener
-        return () => {
-            window.removeEventListener('scroll', handleScroll); // Clean up on unmount
-        };
-
-    }, [])
+        if (isInitialized && coreClient) {
+            loadProducts();
+            window.addEventListener('scroll', handleScroll);
+            return () => {
+                window.removeEventListener('scroll', handleScroll);
+            };
+        }
+    }, [isInitialized, coreClient]);
 
     const handleScroll = () => {
-        if (window.innerHeight + document.documentElement.scrollTop >= document.documentElement.offsetHeight - 5 && !loading) {
-            page = page + 1;
+        if (window.innerHeight + document.documentElement.scrollTop >= document.documentElement.offsetHeight - 5 && !isLoadingMore && !isEndOfList) {
+            setPage(prevPage => prevPage + 1);
             loadProducts();
         }
     };
 
     const searchProducts = async () => {
-        console.log('Triggered search');
         setProducts([]);
+        setPage(1);
+        setEndOfList(false);
         loadProducts();
-    }
+    };
 
     const loadProducts = async () => {
-        if (loading) return;
-        loading = true;
-        const client = CoreClient.getInstance();
-        var result = await client.getProducts({ "searchTerm": searchTerm, "page": page });
-        if (result.length > 0) {
-            // end of list
-            setProducts(prevProducts => [...prevProducts, ...result]); // Append new products
-        } else {
-            setEndOfList(true);
+        if (!coreClient || isLoadingMore) return;
+        setIsLoadingMore(true);
+        dispatch(setLoading(true));
+        try {
+            const result = await coreClient.getProducts({ "searchTerm": searchTerm, "page": page, "categoryFilter": "" });
+            if (result.length > 0) {
+                setProducts(prevProducts => [...prevProducts, ...result]);
+            } else {
+                setEndOfList(true);
+            }
+        } catch (error) {
+            console.error('Error loading products:', error);
+            dispatch(setError('Failed to load products'));
+            toast.error('Failed to load products');
+        } finally {
+            setIsLoadingMore(false);
+            dispatch(setLoading(false));
         }
-        loading = false;
-
-
-    }
+    };
 
     const handleEditProduct = (product: Product) => {
         setSelectedProduct(product);
@@ -62,60 +74,67 @@ export default function Products() {
         setSelectedProduct(null);
     };
 
-
     const handleSaveProduct = async (editedProduct: Product) => {
-
-        const client = CoreClient.getInstance();
-        var result;
-        if (!editedProduct.id) {
-            result = await client.createProduct(editedProduct);
-
-            // Update the products state with the edited product
-            editedProduct = { ...editedProduct, id: result }
-            setProducts(prevProducts => [...prevProducts, editedProduct]);
-
-        } else {
-            result = await client.updateProduct(editedProduct);
-
-            // Update the products state with the edited product
-            setProducts(prevProducts =>
-                prevProducts.map(product =>
-                    product.id === editedProduct.id ? editedProduct : product
-                )
-            );
+        if (!coreClient) return;
+        dispatch(setLoading(true));
+        try {
+            let result;
+            if (!editedProduct.id) {
+                result = await coreClient.createProduct(editedProduct);
+                editedProduct = new Product(editedProduct.name, editedProduct.image, editedProduct.category, editedProduct.description, editedProduct.code, editedProduct.price, editedProduct.variation, result.id);
+                setProducts(prevProducts => [...prevProducts, editedProduct]);
+            } else {
+                result = await coreClient.updateProduct(editedProduct);
+                setProducts(prevProducts =>
+                    prevProducts.map(product =>
+                        product.id === editedProduct.id ? editedProduct : product
+                    )
+                );
+            }
+            if (!result) return;
+            setSelectedProduct(null);
+            toast.success('Product updated successfully.');
+        } catch (error) {
+            console.error('Error saving product:', error);
+            toast.error('Failed to save product');
+        } finally {
+            dispatch(setLoading(false));
         }
-
-        if (!result) return;
-        setSelectedProduct(null);
-
-
-        toast.success('Product update successfully.')
-
     };
 
     const handleRemoveProduct = async (editedProduct: Product) => {
-        if (!editedProduct.id) return;
-        const client = CoreClient.getInstance();
-        const result = await client.removeProduct(editedProduct.id);
-        if (!result) return;
-        setSelectedProduct(null);
-
-        // Remove the product from the products state
-        setProducts(prevProducts =>
-            prevProducts.filter(product => product.id !== editedProduct.id) // Remove the product
-        );
-
-        toast.success('Product removed successfully.') // Updated success message
-
+        if (!editedProduct.id || !coreClient) return;
+        dispatch(setLoading(true));
+        try {
+            const result = await coreClient.removeProduct(editedProduct.id);
+            if (!result) return;
+            setSelectedProduct(null);
+            setProducts(prevProducts =>
+                prevProducts.filter(product => product.id !== editedProduct.id)
+            );
+            toast.success('Product removed successfully.');
+        } catch (error) {
+            console.error('Error removing product:', error);
+            toast.error('Failed to remove product');
+        } finally {
+            dispatch(setLoading(false));
+        }
     };
+
     const handleAddProduct = () => {
-        setSelectedProduct({ 'category': '', 'code': '', 'description': '', 'image': '', 'name': '', 'price': 0.00 });
+        setSelectedProduct(new Product('', [], [], '', '', 0.00, []));
+    };
+
+    if (isLoading) {
+        return <LoadingScreen></LoadingScreen>;
+    }
+
+    if (!isInitialized || !coreClient) {
+        return <div>Error: Product system not initialized</div>;
     }
 
     return (
         <div className="min-h-screen bg-gray-100">
-
-            {/* Main content */}
             <main className="container mx-auto px-4 py-8">
                 <header className="flex justify-between items-center mb-6">
                     <h1 className="text-2xl font-bold text-red-500">Products</h1>
@@ -135,59 +154,53 @@ export default function Products() {
                         onChange={(e) => setSearchTerm(e.target.value)}
                         onKeyDown={(e) => {
                             if (e.key === 'Enter') {
-                                searchProducts(); // Trigger the search/filter function
+                                searchProducts();
                             }
                         }}
                     />
                     <button
                         className="bg-red-500 text-white w-[200px] rounded hover:bg-red-600"
-                        onClick={() => handleAddProduct()}
+                        onClick={handleAddProduct}
                     >
                         Add Product
                     </button>
                 </div>
 
-
-                <div>
-                    <div className="flex flex-wrap gap-6">
-                        {products.map((product) => (
-                            <div key={product.id} className="flex bg-white rounded-lg p-4 shadow w-[300px] h-[130px]" onClick={() => handleEditProduct(product)}>
-                                <div className="relative bg-gray-100 rounded-lg w-[100px] h-[100px] mr-[10px]">
-                                    {product.image && product.image !== '' && (
-                                        <Image
-                                            src={product.image ? `http://localhost:6001/img/product/${product.image.split(',')[0]}` : '/path/to/placeholder.png'}
-                                            alt={product.name}
-                                            className="rounded object-cover"
-                                            layout="fill"
-                                            objectFit="cover"
-                                        />
-                                    )}
-                                </div>
-                                <div>
-                                    <h3 className="font-bold mt-[5px]">{product.name}</h3>
-                                    {buildCategoriesChips(product.category)}
-                                    <h1>RM {product.price}</h1>
-                                </div>
-
+                <div className="flex flex-wrap gap-6">
+                    {products.map((product) => (
+                        <div key={product.id} className="flex bg-white rounded-lg p-4 shadow w-[300px] h-[130px]" onClick={() => handleEditProduct(product)}>
+                            <div className="relative bg-gray-100 rounded-lg w-[100px] h-[100px] mr-[10px]">
+                                {product.image && (
+                                    <Image
+                                        src={product.image ? `http://localhost:6001/img/product/${product.image[0]}` : '/path/to/placeholder.png'}
+                                        alt={product.name}
+                                        className="rounded object-cover"
+                                        layout="fill"
+                                        objectFit="cover"
+                                    />
+                                )}
                             </div>
-                        ))}
-
-                    </div>
-
-
+                            <div>
+                                <h3 className="font-bold mt-[5px]">{product.name}</h3>
+                                {buildCategoriesChips(product.category)}
+                                <h1>RM {product.price}</h1>
+                            </div>
+                        </div>
+                    ))}
                 </div>
-            </main >
+
+                {isLoadingMore && <div>Loading more products...</div>}
+                {isEndOfList && <div>No more products to load</div>}
+            </main>
 
             {selectedProduct && (
                 <EditProductModal
-                    product={selectedProduct}
+                    oriProduct={selectedProduct}
                     onClose={handleCloseModal}
                     onSave={handleSaveProduct}
                     onRemove={handleRemoveProduct}
                 />
-            )
-            }
-        </div >
+            )}
+        </div>
     );
-};
-
+}

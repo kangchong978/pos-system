@@ -1,8 +1,7 @@
-const buildCategoriesChips = (categories: string) => {
-    if (!categories) return null; // Handle empty string
+const buildCategoriesChips = (categories: string[]) => {
+    if (categories.length == 0) return;
 
-    const convertedCategories = categories.split(',').map((category) => category.trim());
-    const displayCategories = convertedCategories.slice(0, 1); // Get the first 3 categories
+    const displayCategories = categories.slice(0, 1); // Get the first 3 categories
 
     return (
         <>
@@ -13,7 +12,7 @@ const buildCategoriesChips = (categories: string) => {
                     </div>
                 </div>
             ))}
-            {convertedCategories.length > 1 && (
+            {categories.length > 1 && (
                 <div className="flex">
                     <div className="text-red-500 px-2 mr-1 sm:rounded">
                         <p>...</p>
