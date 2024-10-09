@@ -133,13 +133,13 @@ export default class CoreClient {
 
     async logout() {
         try {
-            this.post('/api/auth/logout', null);
+            await this.post('/api/auth/logout', null);
         } catch (error: any) {
             toast.error(error.toString());
+        } finally {
+            localStorage.removeItem('userInfo');
+            this.userInfo = null; // Clear clientInfo on logout
         }
-
-        localStorage.removeItem('userInfo');
-        this.userInfo = null; // Clear clientInfo on logout
     }
 
     get isLoggedIn(): boolean {
