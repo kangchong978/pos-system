@@ -1,5 +1,5 @@
 'use client';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState, AppDispatch } from '@/store';
 import { setLoading, setOrders, setError, updateOrderStatus } from '@/redux_slices/orderSlice';
@@ -9,9 +9,100 @@ import toast from 'react-hot-toast';
 import OrderDetailsModal from '@/components/orderDetailsModal';
 import { useCoreClient } from '@/utils/useClient';
 import { handlePrintReceipt } from '@/utils/common';
-import { Eye, Printer } from 'lucide-react';
+import { Eye, Printer, Search } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import LoadingScreen from '@/components/LoadingScreen';
+import { getColor } from '@/utils/colorUtils';
+import { useTheme } from '@/components/ThemeContext';
+
+
 
 export default function Orders() {
+    const { currentTheme } = useTheme(); // Get the current theme
+    const styles = useMemo(() => ({
+        container: {
+            minHeight: '100vh',
+            backgroundColor: getColor('background-primary'),
+            padding: '2rem',
+        },
+        main: {
+            maxWidth: '1200px',
+            margin: '0 auto',
+        },
+        title: {
+            fontSize: '1.5rem',
+            fontWeight: 'bold',
+            color: getColor('primary'),
+        },
+        searchContainer: {
+            display: 'flex',
+            marginBottom: '1.5rem',
+        },
+        searchInput: {
+            width: '100%',
+            padding: '10px 16px',
+            paddingLeft: '40px',
+            borderRadius: '8px',
+            border: `1px solid ${getColor('border')}`,
+            fontSize: '14px',
+            backgroundColor: getColor('background-primary'),
+        },
+        searchIcon: {
+            position: 'absolute' as const,
+            left: '12px',
+            top: '50%',
+            transform: 'translateY(-50%)',
+            color: getColor('text-secondary'),
+        },
+        select: {
+            padding: '0.5rem',
+            border: `1px solid ${getColor('border')}`,
+            borderRadius: '0.375rem',
+            backgroundColor: getColor('surface'),
+            color: getColor('text-primary')
+        },
+        table: {
+            width: '100%',
+            borderSpacing: '0 0.5rem',
+            color: getColor('text-primary')
+        },
+        tableHeader: {
+            backgroundColor: getColor('surface'),
+            color: getColor('text-primary'),
+            fontWeight: 'bold',
+            padding: '1rem',
+            borderBottom: `2px solid ${getColor('primary')}`,
+        },
+        tableRow: {
+            backgroundColor: getColor('surface'),
+            transition: 'background-color 0.3s',
+            cursor: 'pointer',
+        },
+        tableCell: {
+            padding: '1rem',
+            borderBottom: `1px solid ${getColor('border')}`,
+        },
+        statusBadge: {
+            padding: '0.25rem 0.5rem',
+            borderRadius: '9999px',
+            fontSize: '0.75rem',
+            fontWeight: '600',
+        },
+        button: {
+            display: 'flex',
+            alignItems: 'center',
+            padding: '0.5rem',
+            borderRadius: '0.25rem',
+            transition: 'background-color 0.3s',
+        },
+        header: {
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: '1.5rem',
+        },
+    }), [currentTheme]); // Re-compute styles when theme changes
+
     const dispatch = useDispatch<AppDispatch>();
     const { orders, loading, error } = useSelector((state: RootState) => state.orderSlice);
     const [searchTerm, setSearchTerm] = useState('');
@@ -71,39 +162,44 @@ export default function Orders() {
     };
 
     const onPrintReceipt = (orderId: number, event: React.MouseEvent) => {
-        handlePrintReceipt(orderId, event, coreClient, dispatch);
+        handlePrintReceipt(orderId, event, coreClient, dispatch, true);
     };
 
-    if (loading) return <div>Loading...</div>;
-    if (error) return <div>Error: {error}</div>;
+    if (loading) return <LoadingScreen></LoadingScreen>;
+    if (error) return <div style={styles.container}>Error: {error}</div>;
 
     return (
-        <div className="min-h-screen bg-gray-100">
-            <Head>
-                <title>Order Management | Wendy's</title>
-            </Head>
+        <div style={styles.container}>
 
-            <main className="container mx-auto px-4 py-8">
-                <h1 className="text-3xl font-bold mb-8 text-red-600">Order Management</h1>
+            <main style={styles.main}>
+                <motion.header
+                    style={styles.header}
+                    initial={{ opacity: 0, y: -20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5 }}
+                >
+                    <h1 style={styles.title}>Orders</h1>
+                </motion.header>
 
-                <div className="mb-6 flex flex-col md:flex-row md:items-center md:justify-between">
-                    <div className="relative">
+                <motion.div
+                    style={styles.searchContainer}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5, delay: 0.2 }}
+                >
+                    <div style={{ position: 'relative', width: '100%', marginRight: '16px' }}>
+                        <Search size={18} style={styles.searchIcon} />
                         <input
                             type="text"
                             placeholder="Search orders by ID..."
-                            className="p-2 pr-10 border rounded w-full md:w-64 mb-4 md:mb-0"
+                            style={styles.searchInput}
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                             onKeyPress={handleSearchKeyPress}
                         />
-                        <span className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-500">
-                            <p className='border px-[2px]'>
-                                Enter
-                            </p>
-                        </span>
                     </div>
                     <select
-                        className="p-2 border rounded"
+                        style={styles.select}
                         value={statusFilter}
                         onChange={(e) => setStatusFilter(e.target.value)}
                     >
@@ -112,72 +208,93 @@ export default function Orders() {
                         <option value="canceled">Canceled</option>
                         <option value="completed">Completed</option>
                     </select>
-                </div>
 
-                <div className="bg-white shadow overflow-hidden sm:rounded-lg">
-                    <table className="min-w-full divide-y divide-gray-200">
-                        <thead className="bg-gray-50">
+                </motion.div>
+
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5, delay: 0.4 }}
+                >
+                    <table style={styles.table}>
+                        <thead>
                             <tr>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Order ID</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Updated</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                <th style={styles.tableHeader}>Order ID</th>
+                                <th style={styles.tableHeader}>Total</th>
+                                <th style={styles.tableHeader}>Status</th>
+                                <th style={styles.tableHeader}>Created</th>
+                                <th style={styles.tableHeader}>Updated</th>
+                                <th style={styles.tableHeader}>Actions</th>
                             </tr>
                         </thead>
-                        <tbody className="bg-white divide-y divide-gray-200">
-                            {orders.map((order) => (
-                                <tr
-                                    key={order.id}
-                                    onClick={() => handleRowClick(order)}
-                                    className="cursor-pointer hover:bg-gray-50"
-                                >
-                                    <td className="px-6 py-4 whitespace-nowrap">{order.id}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap">${order.total.toFixed(2)}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap">
-                                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
-                                            ${order.status === 'completed' ? 'bg-green-100 text-green-800' :
-                                                order.status === 'active' ? 'bg-yellow-100 text-yellow-800' :
-                                                    'bg-red-100 text-red-800'}`}>
-                                            {order.status}
-                                        </span>
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap">
-                                        {new Date(order.createDate).toLocaleString()}
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap">
-                                        {new Date(order.updateDate).toLocaleString()}
-                                    </td>
-                                    <td className="flex px-6 py-4 whitespace-nowrap text-sm items-center">
-                                        <button
-                                            className="flex text-blue-600 hover:text-blue-900 mr-6"
-                                            onClick={() => handleRowClick(order)}
-                                        >
-                                            <Eye style={{ marginRight: '5px' }}></Eye>
-                                            View
-                                        </button>
-                                        <button
-                                            className="flex text-green-600 hover:text-green-900 items-center"
-                                            onClick={(e) => onPrintReceipt(order.id, e)}
-                                        >
-                                            <Printer style={{ marginRight: '5px' }}></Printer>
-                                            Print
-                                        </button>
-                                    </td>
-                                </tr>
-                            ))}
+                        <tbody>
+                            <AnimatePresence>
+                                {orders.map((order) => (
+                                    <motion.tr
+                                        key={order.id}
+                                        initial={{ opacity: 0 }}
+                                        animate={{ opacity: 1 }}
+                                        exit={{ opacity: 0 }}
+                                        transition={{ duration: 0.3 }}
+                                        onClick={() => handleRowClick(order)}
+                                        style={styles.tableRow}
+                                        whileHover={{ backgroundColor: getColor('background-primary') }}
+                                    >
+                                        <td style={styles.tableCell}>{order.id}</td>
+                                        <td style={styles.tableCell}>${order.total.toFixed(2)}</td>
+                                        <td style={styles.tableCell}>
+                                            <span style={{
+                                                ...styles.statusBadge,
+                                                backgroundColor: order.status === 'completed' ? '#D1FAE5' :
+                                                    order.status === 'active' ? '#FEF3C7' : '#FEE2E2',
+                                                color: order.status === 'completed' ? '#065F46' :
+                                                    order.status === 'active' ? '#92400E' : '#991B1B',
+                                            }}>
+                                                {order.status}
+                                            </span>
+                                        </td>
+                                        <td style={styles.tableCell}>
+                                            {new Date(order.createDate).toLocaleString()}
+                                        </td>
+                                        <td style={styles.tableCell}>
+                                            {new Date(order.updateDate).toLocaleString()}
+                                        </td>
+                                        <td style={styles.tableCell}>
+                                            <motion.button
+                                                whileHover={{ scale: 1.05 }}
+                                                whileTap={{ scale: 0.95 }}
+                                                style={{ ...styles.button, color: getColor('primary') }}
+                                                onClick={() => handleRowClick(order)}
+                                            >
+                                                <Eye style={{ marginRight: '5px' }} />
+                                                View
+                                            </motion.button>
+                                            <motion.button
+                                                whileHover={{ scale: 1.05 }}
+                                                whileTap={{ scale: 0.95 }}
+                                                style={{ ...styles.button, color: getColor('secondary') }}
+                                                onClick={(e) => onPrintReceipt(order.id, e)}
+                                            >
+                                                <Printer style={{ marginRight: '5px' }} />
+                                                Print
+                                            </motion.button>
+                                        </td>
+                                    </motion.tr>
+                                ))}
+                            </AnimatePresence>
                         </tbody>
                     </table>
-                </div>
+                </motion.div>
 
-                {selectedOrder && (
-                    <OrderDetailsModal
-                        order={selectedOrder}
-                        onClose={handleCloseModal}
-                        onPrint={(e) => onPrintReceipt(selectedOrder.id, e)}
-                    />
-                )}
+                <AnimatePresence>
+                    {selectedOrder && (
+                        <OrderDetailsModal
+                            order={selectedOrder}
+                            onClose={handleCloseModal}
+                            onPrint={(e) => onPrintReceipt(selectedOrder.id, e)}
+                        />
+                    )}
+                </AnimatePresence>
             </main>
         </div>
     );

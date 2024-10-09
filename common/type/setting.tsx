@@ -12,4 +12,5 @@ interface CompanyInfo {
     website: string;
     phone_number: string;
     receipt_footer_text: string;
+    theme: string;
 }

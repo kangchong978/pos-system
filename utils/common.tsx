@@ -7,7 +7,8 @@ export const handlePrintReceipt = (
     orderId: number,
     event: React.MouseEvent,
     coreClient: CoreClient | null,
-    dispatch: AppDispatch
+    dispatch: AppDispatch,
+    isOrderList: boolean,
 ) => {
     event.stopPropagation(); // Prevent row click event
 
@@ -20,7 +21,7 @@ export const handlePrintReceipt = (
 
     const printReceiptAsync = async () => {
         try {
-            const pdfBlob = await coreClient.printReceipt(orderId);
+            const pdfBlob = (isOrderList) ? await coreClient.printOrderList(orderId) : await coreClient.printReceipt(orderId);
 
             // Create a URL for the blob
             const url = window.URL.createObjectURL(pdfBlob);

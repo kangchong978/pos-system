@@ -1,14 +1,19 @@
-
+import React, { useEffect, useMemo } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { MyFile, Product, Variation } from "@/common/type/product";
 import { setError, setFiles, setNewCategory, setNewVariation, setNewVariationOption, setProduct, updateProductField } from "@/redux_slices/productEditSlice";
 import { AppDispatch, RootState } from "@/store";
-import { initialize } from "next/dist/server/lib/render-server";
-import { useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import ImageGallery from "./imagesGallary";
-import { buildCategorieseChipsEdit } from "./categoriesChipsEdit";
 import toast from "react-hot-toast";
 import { useCoreClient } from "@/utils/useClient";
+import { getColor } from '../utils/colorUtils';
+import CategoriesChips from './categoriesChips';
+import { Minus, X } from 'lucide-react';
+import { useTheme } from './ThemeContext';
+
+
+
 
 interface EditProductModalProps {
     oriProduct: Product;
@@ -19,6 +24,142 @@ interface EditProductModalProps {
 
 
 const EditProductModal: React.FC<EditProductModalProps> = ({ oriProduct, onClose, onSave, onRemove }) => {
+
+    const { currentTheme } = useTheme(); // Get the current theme
+
+    /* to overcome the theme incorrect by rerender while theme changed */
+    const styles = useMemo(() => ({
+        overlay: {
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '1rem',
+        },
+        modal: {
+            backgroundColor: getColor('background-primary'),
+            borderRadius: '0.5rem',
+            width: '80%',
+            maxHeight: '90vh',
+            display: 'flex',
+            flexDirection: 'column',
+        },
+        header: {
+            margin: '1.25rem',
+            display: 'flex',
+            justifyContent: 'flex-start',
+        },
+        title: {
+            fontSize: '1.5rem',
+            fontWeight: 'bold',
+            color: getColor('primary'),
+        },
+        content: {
+            padding: '1rem',
+            display: 'grid',
+            gridTemplateColumns: '30% auto',
+            gap: '1.5rem',
+            overflowY: 'auto' as const,
+            flexGrow: 1,
+        },
+        input: {
+            width: '100%',
+            padding: '0.5rem',
+            border: `1px solid ${getColor('border')}`,
+            borderRadius: '0.25rem',
+            backgroundColor: getColor('background-secondary'),
+            color: getColor('text-primary')
+        },
+        textarea: {
+            width: '100%',
+            padding: '0.5rem',
+            border: `1px solid ${getColor('border')}`,
+            borderRadius: '0.25rem',
+            height: '10rem',
+            marginBottom: '0.5rem',
+            backgroundColor: getColor('background-secondary'),
+            color: getColor('text-primary')
+        },
+        button: {
+            padding: '0.5rem 1rem',
+            borderRadius: '0.25rem',
+            cursor: 'pointer',
+            color: getColor('text-primary')
+        },
+        errorText: {
+            color: getColor('primary'),
+            fontSize: '0.875rem',
+        },
+        variationContainer: {
+            marginBottom: '1rem',
+            border: `1px solid ${getColor('border')}`,
+            padding: '1rem',
+            borderRadius: '0.5rem',
+            backgroundColor: getColor('background-primary'),
+        },
+        variationHeader: {
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: '1rem',
+        },
+        removeButton: {
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: '2rem',
+            height: '2rem',
+            border: `1px solid ${getColor('border')}`,
+            borderRadius: '0.25rem',
+            backgroundColor: getColor('background-primary'),
+            cursor: 'pointer',
+        },
+        variationName: {
+            fontSize: '1.1rem',
+            fontWeight: 'bold',
+            color: getColor('text-secondary'),
+        },
+        requiredCheckbox: {
+            display: 'flex',
+            alignItems: 'center',
+        },
+        optionsContainer: {
+            display: 'flex',
+            flexWrap: 'wrap' as const,
+            gap: '0.5rem',
+            marginBottom: '1rem',
+        },
+        optionChip: {
+            borderRadius: '15px',
+            padding: '6px 12px',
+            border: `1px solid ${getColor('border')}`,
+            display: 'flex',
+            alignItems: 'center',
+            cursor: 'pointer',
+            transition: 'all 0.3s',
+        },
+        optionName: {
+            color: getColor('text-primary'),
+            marginRight: '0.25rem',
+        },
+        optionPrice: {
+            color: getColor('primary'),
+        },
+        removeOptionButton: {
+            marginLeft: '0.5rem',
+            cursor: 'pointer',
+            color: getColor('text-secondary'),
+        },
+        inputContainer: {
+            display: 'flex',
+            gap: '0.5rem',
+        },
+    }), [currentTheme]); // Recalculate styles when theme changes
+
+
+
     const dispatch = useDispatch<AppDispatch>();
     const { coreClient, isInitialized, isLoading } = useCoreClient();
     const {
@@ -230,45 +371,73 @@ const EditProductModal: React.FC<EditProductModalProps> = ({ oriProduct, onClose
 
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
-            <div className="bg-white rounded-lg w-full   max-h-[90vh] flex flex-col">
-                <div className="mx-[20px] mt-[20px] flex justify-start space-x-4">
-                    <h1 className="text-2xl font-bold text-red-500">{product.name}</h1>
+        <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            style={styles.overlay as React.CSSProperties}
+        >
+            <motion.div
+                initial={{ scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.9, opacity: 0 }}
+                transition={{ type: 'spring', damping: 20, stiffness: 300 }}
+                style={styles.modal as React.CSSProperties}
+            >
+                <div style={styles.header}>
+                    <h1 style={styles.title}>{product.name}</h1>
                 </div>
-                <div className="p-4 grid grid-cols-[30%,auto] gap-6 overflow-y-auto flex-grow">
-
+                {/* ignore this error */}
+                <div style={styles.content}>
                     <div>
                         <ImageGallery files={files} onRemove={handleFileRemove} />
                         <input
                             type="file"
                             accept="image/*"
                             multiple
-                            id="file-upload" // Add an id for the label to reference
-                            hidden // Hide the default file input
+                            id="file-upload"
+                            hidden
                             onChange={handleFilesChanges}
                         />
-                        <label
+                        <motion.label
                             htmlFor="file-upload"
-                            className="flex items-center justify-center p-2 border rounded bg-red-500 text-white cursor-pointer block mt-2" // Added flex, items-center, and justify-center
+                            style={{
+                                ...styles.button,
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                backgroundColor: getColor('primary'),
+                                color: getColor('on-primary'),
+                                marginTop: '0.5rem',
+                            }}
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
                         >
                             Upload Files
-                        </label>
+                        </motion.label>
 
-
-                        <h3 className="font-bold mt-4 mb-2">Product Name</h3>
+                        <h3 style={{ fontWeight: 'bold', marginTop: '1rem', marginBottom: '0.5rem', color: getColor('text-secondary') }}>Product Name</h3>
                         <input
                             type="text"
                             name="name"
                             value={product.name}
                             onChange={(v) => dispatch(updateProductField({ field: v.target.name, value: v.target.value }))}
-                            className="w-full p-2 border rounded"
+                            style={styles.input}
                         />
-                        {errors?.name && <p className='text-red-600'>{errors.name}</p>}
-                        <h3 className="font-bold mt-4 mb-2">Categories</h3>
+                        {errors?.name && <p style={styles.errorText}>{errors.name}</p>}
+
+                        <h3 style={{ fontWeight: 'bold', marginTop: '1rem', marginBottom: '0.5rem', color: getColor('text-secondary') }}>Categories</h3>
                         {product.category &&
-                            buildCategorieseChipsEdit(product.category, (v: string) => { handleCategoryRemove(v); })
+                            <CategoriesChips
+                                categories={product.category}
+                                isEditable={true}
+                                onSelectCallback={(v: string) => { handleCategoryRemove(v) }}
+                            />
                         }
-                        <input placeholder="+ new category" className="p-2 border rounded" value={newCategory ?? ''}
+                        <input
+                            placeholder="+ new category"
+                            style={styles.input}
+                            value={newCategory ?? ''}
                             onChange={handleCategoryInputChange}
                             onKeyDown={(e) => {
                                 if (e.key === 'Enter') {
@@ -276,106 +445,167 @@ const EditProductModal: React.FC<EditProductModalProps> = ({ oriProduct, onClose
                                 }
                             }}
                         />
-                        {errors?.category && <p className='text-red-600'>{errors.category}</p>}
-
+                        {errors?.category && <p style={styles.errorText}>{errors.category}</p>}
                     </div>
                     <div>
-                        <h3 className="font-bold mb-2">Descriptions</h3>
+                        <h3 style={{ fontWeight: 'bold', marginBottom: '0.5rem', color: getColor('text-secondary') }}>Descriptions</h3>
                         <textarea
                             name="description"
                             value={product.description}
                             onChange={(v) => dispatch(updateProductField({ field: v.target.name, value: v.target.value }))}
-                            className="w-full p-2 border rounded h-40 mb-2"
+                            style={styles.textarea}
                         />
 
-                        <h3 className="font-bold mb-2">Variations</h3>
+                        <h3 style={{ fontWeight: 'bold', marginBottom: '0.5rem', color: getColor('text-secondary') }}>Variations</h3>
 
-                        {product.variation && product.variation.map((v, i) => (
-                            <div className="mb-[10px] border p-2">
-                                <div className="flex mb-[10px] relative">
-                                    <button className="mr-2 border h-[20px] w-[20px] flex items-center justify-center" onClick={() => handleRemoveVariation(i)}>
-                                        <p className="text-xs text-gray-300">-</p>
-                                    </button>
-                                    <h3>{v.name}</h3>
-
-                                    {/* Position the right div */}
-                                    <div className="absolute top-0 right-0 flex items-center">
-                                        <input className="mr-1" type="checkbox" checked={v.required} onClick={() => handleRequiredVariation(i, v.required)} />
-                                        <label>Required</label>
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <div className="flex flex-wrap mb-[10px]">
-                                        {v.options.map((w, wi) => (
-                                            <div className="mr-[4px] mb-[4px]">
-                                                {/* <p>{w.name} | {w.price}</p> */}
-                                                <div className="rounded border border-red-500 px-[10px] py-[5px] flex">
-                                                    <p className="text-gray mr-[4px]">{w.name}</p>
-                                                    <p className="text-red-500"> [+RM{w.price}]</p>
-                                                    <button onClick={() => handleRemoveVariationOption(i, wi)}>
-                                                        <div className="cursor-pointer ml-2">
-                                                            <p className="text-gray-300">✕</p>
-                                                        </div>
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                    <div className="flex">
-                                        <div>
-                                            <input name="name" placeholder="+ new option" className="p-2 border rounded mr-[10px]" value={newVariationOption.name ?? ''} onChange={handleVaritationOptionInputChange} onKeyDown={(e) => {
-                                                if (e.key === 'Enter') {
-                                                    handleAddVariationOption(i);
-                                                }
-                                            }} />
-                                            {errors?.variationOption?.name && <p className='text-red-600'>{errors?.variationOption?.name}</p>}
-                                        </div>
-                                        <div>
-
-                                            <input name="price" placeholder="+ price" className="p-2 border rounded" type="number" value={newVariationOption.price} onChange={handleVaritationOptionInputChange} onKeyDown={(e) => {
-                                                if (e.key === 'Enter') {
-                                                    handleAddVariationOption(i);
-                                                }
-                                            }} />
-                                            {errors?.variationOption?.price && <p className='text-red-600'>{errors?.variationOption?.price}</p>}
+                        <AnimatePresence>
+                            {product.variation && product.variation.map((v, i) => (
+                                <motion.div
+                                    key={i}
+                                    initial={{ opacity: 0, y: -20 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    exit={{ opacity: 0, y: -20 }}
+                                    style={styles.variationContainer}
+                                >
+                                    <div style={styles.variationHeader}>
+                                        <motion.button
+                                            style={styles.removeButton}
+                                            whileHover={{ scale: 1.1 }}
+                                            whileTap={{ scale: 0.9 }}
+                                            onClick={() => handleRemoveVariation(i)}
+                                        >
+                                            <Minus size={16} color={getColor('text-secondary')} />
+                                        </motion.button>
+                                        <h3 style={styles.variationName}>{v.name}</h3>
+                                        <div style={styles.requiredCheckbox}>
+                                            <input
+                                                type="checkbox"
+                                                checked={v.required}
+                                                onChange={() => handleRequiredVariation(i, v.required)}
+                                                style={{ marginRight: '0.5rem', backgroundColor: getColor('primary') }}
+                                            />
+                                            <label style={{ color: getColor('text-secondary') }}>Required</label>
                                         </div>
                                     </div>
-                                </div>
-                            </div>
 
-                        ))}
+                                    <motion.div style={styles.optionsContainer}>
+                                        <AnimatePresence>
+                                            {v.options.map((w, wi) => (
+                                                <motion.div
+                                                    key={wi}
+                                                    style={styles.optionChip}
+                                                    initial={{ opacity: 0, scale: 0.8 }}
+                                                    animate={{ opacity: 1, scale: 1 }}
+                                                    exit={{ opacity: 0, scale: 0.8 }}
+                                                >
+                                                    <span style={styles.optionName}>{w.name}</span>
+                                                    <span style={styles.optionPrice}>[+RM{w.price}]</span>
+                                                    <motion.button
+                                                        style={styles.removeOptionButton}
+                                                        whileHover={{ scale: 1.1 }}
+                                                        whileTap={{ scale: 0.9 }}
+                                                        onClick={() => handleRemoveVariationOption(i, wi)}
+                                                    >
+                                                        <X size={14} />
+                                                    </motion.button>
+                                                </motion.div>
+                                            ))}
+                                        </AnimatePresence>
+                                    </motion.div>
 
+                                    <div style={styles.inputContainer}>
+                                        <div style={{ flex: 1 }}>
+                                            <input
+                                                name="name"
+                                                placeholder="+ new option"
+                                                style={styles.input}
+                                                value={newVariationOption.name ?? ''}
+                                                onChange={handleVaritationOptionInputChange}
+                                                onKeyDown={(e) => {
+                                                    if (e.key === 'Enter') {
+                                                        handleAddVariationOption(i);
+                                                    }
+                                                }}
+                                            />
+                                            {errors?.variationOption?.name && <p style={styles.errorText}>{errors.variationOption.name}</p>}
+                                        </div>
+                                        <div style={{ flex: 1 }}>
+                                            <input
+                                                name="price"
+                                                placeholder="+ price"
+                                                type="number"
+                                                style={styles.input}
+                                                value={newVariationOption.price}
+                                                onChange={handleVaritationOptionInputChange}
+                                                onKeyDown={(e) => {
+                                                    if (e.key === 'Enter') {
+                                                        handleAddVariationOption(i);
+                                                    }
+                                                }}
+                                            />
+                                            {errors?.variationOption?.price && <p style={styles.errorText}>{errors.variationOption.price}</p>}
+                                        </div>
+                                    </div>
+                                </motion.div>
+                            ))}
+                        </AnimatePresence>
+                        <input
+                            placeholder="+ new variation"
+                            style={styles.input}
+                            value={newVariation ?? ''}
+                            onChange={handleVaritationInputChange}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                    handleAddVariation();
+                                }
+                            }}
+                        />
+                        {errors?.variation && <p style={styles.errorText}>{errors.variation}</p>}
 
-
-                        <input placeholder="+ new variation" className="p-2 border rounded" value={newVariation ?? ''} onChange={handleVaritationInputChange} onKeyDown={(e) => {
-                            if (e.key === 'Enter') {
-                                handleAddVariation();
-                            }
-                        }} />
-                        {errors?.variation && <p className='text-red-600'>{errors.variation}</p>}
-
-                        <h3 className="font-bold mt-4 mb-2">Price per item (RM)</h3>
+                        <h3 style={{ fontWeight: 'bold', marginTop: '1rem', marginBottom: '0.5rem', color: getColor('text-secondary') }}>Price per item (RM)</h3>
                         <input
                             type="number"
                             name="price"
                             value={product.price}
                             onChange={(v) => dispatch(updateProductField({ field: v.target.name, value: v.target.value }))}
-                            className="w-full p-2 border rounded"
-
+                            style={styles.input}
                         />
-                        {errors?.price && <p className='text-red-600'>{errors.price}</p>}
-
+                        {errors?.price && <p style={styles.errorText}>{errors.price}</p>}
                     </div>
                 </div>
-                <div className="m-3 flex justify-end space-x-4">
-                    <button onClick={() => onRemove(product)} className="px-4 py-2 border rounded">Delete</button>
-                    <button onClick={() => onClose()} className="px-4 py-2 border rounded">Cancel</button>
-                    <button onClick={(v) => handleSubmit()} className="px-4 py-2 bg-red-500 text-white rounded">Save Changes</button>
+                <div style={{ margin: '0.75rem', display: 'flex', justifyContent: 'flex-end', gap: '1rem' }}>
+                    <motion.button
+                        onClick={() => onRemove(product)}
+                        style={{ ...styles.button, border: `1px solid ${getColor('border')}` }}
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                    >
+                        Delete
+                    </motion.button>
+                    <motion.button
+                        onClick={onClose}
+                        style={{ ...styles.button, border: `1px solid ${getColor('border')}` }}
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                    >
+                        Cancel
+                    </motion.button>
+                    <motion.button
+                        onClick={handleSubmit}
+                        style={{
+                            ...styles.button,
+                            backgroundColor: getColor('primary'),
+                            color: getColor('on-primary')
+                        }}
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                    >
+                        Save Changes
+                    </motion.button>
                 </div>
-            </div>
-        </div>
+            </motion.div>
+        </motion.div>
     );
-};
+}
 
 export default EditProductModal;

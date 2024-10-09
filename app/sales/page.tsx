@@ -1,193 +1,244 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
-import Head from 'next/head';
-import { Bar } from 'react-chartjs-2';
-import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip as ChartTooltip, Legend, ChartData, ChartOptions } from 'chart.js';
-import { Table, TableBody, TableCell, TableColumn, TableHeader, TableRow } from '@nextui-org/table';
-import { Tooltip } from '@nextui-org/tooltip';
-import { Chip } from '@nextui-org/chip';
-import { EyeIcon } from 'lucide-react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { AppDispatch } from '@/store';
 import { setLoading, setError } from '@/redux_slices/appSlice';
+import Head from 'next/head';
 import { useCoreClient } from '@/utils/useClient';
+import { motion, AnimatePresence } from 'framer-motion';
 import LoadingScreen from '@/components/LoadingScreen';
-
-ChartJS.register(CategoryScale, LinearScale, BarElement, Title, ChartTooltip, Legend);
-
-interface SaleRecord {
-    id: number;
-    date: string;
-    total: number;
-    taxAmount: number;
-    paymentMethod: string;
-    status: string;
-}
-
-interface WeeklySale {
-    date: string;
-    total: number;
-}
+import { getColor } from '@/utils/colorUtils';
+import { useTheme } from '@/components/ThemeContext';
+import { Search, Eye, Printer } from 'lucide-react';
+import toast from 'react-hot-toast';
+import { SaleRecord } from '@/common/type/sales';
+import { handlePrintReceipt } from '@/utils/common';
 
 export default function Sales() {
+    const { currentTheme } = useTheme();
+    const styles = useMemo(() => ({
+        container: {
+            minHeight: '100vh',
+            backgroundColor: getColor('background-primary'),
+            padding: '2rem',
+        },
+        main: {
+            maxWidth: '1200px',
+            margin: '0 auto',
+        },
+        title: {
+            fontSize: '1.5rem',
+            fontWeight: 'bold',
+            color: getColor('primary'),
+        },
+        searchContainer: {
+            display: 'flex',
+            marginBottom: '1.5rem',
+        },
+        searchInput: {
+            width: '100%',
+            padding: '10px 16px',
+            paddingLeft: '40px',
+            borderRadius: '8px',
+            border: `1px solid ${getColor('border')}`,
+            fontSize: '14px',
+            backgroundColor: getColor('background-primary'),
+            color: getColor('text-primary'),
+        },
+        searchIcon: {
+            position: 'absolute' as const,
+            left: '12px',
+            top: '50%',
+            transform: 'translateY(-50%)',
+            color: getColor('text-secondary'),
+        },
+        select: {
+            padding: '0.5rem',
+            border: `1px solid ${getColor('border')}`,
+            borderRadius: '0.375rem',
+            backgroundColor: getColor('surface'),
+            color: getColor('text-primary'),
+        },
+        table: {
+            width: '100%',
+            borderSpacing: '0 0.5rem',
+            color: getColor('text-primary'),
+        },
+        tableHeader: {
+            backgroundColor: getColor('surface'),
+            color: getColor('text-primary'),
+            fontWeight: 'bold',
+            padding: '1rem',
+            borderBottom: `2px solid ${getColor('primary')}`,
+        },
+        tableRow: {
+            backgroundColor: getColor('surface'),
+            transition: 'background-color 0.3s',
+            cursor: 'pointer',
+        },
+        tableCell: {
+            padding: '1rem',
+            borderBottom: `1px solid ${getColor('border')}`,
+        },
+        header: {
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: '1.5rem',
+        },
+    }), [currentTheme]);
+
     const dispatch = useDispatch<AppDispatch>();
     const { coreClient, isInitialized, isLoading } = useCoreClient();
     const [salesData, setSalesData] = useState<SaleRecord[]>([]);
-    const [isDataLoading, setIsDataLoading] = useState<boolean>(true);
-    const [totalSales, setTotalSales] = useState<number>(0);
-    const [totalOrders, setTotalOrders] = useState<number>(0);
-    const [averageOrderValue, setAverageOrderValue] = useState<number>(0);
-    const [weeklySales, setWeeklySales] = useState<WeeklySale[]>([]);
+    const [searchTerm, setSearchTerm] = useState('');
+    const [activeSearchTerm, setActiveSearchTerm] = useState('');
+    const [paymentMethodFilter, setPaymentMethodFilter] = useState('all');
 
     useEffect(() => {
         if (isInitialized && coreClient) {
             fetchSalesData();
         }
-    }, [isInitialized, coreClient]);
+    }, [isInitialized, coreClient, activeSearchTerm, paymentMethodFilter]);
 
     const fetchSalesData = async () => {
         if (!coreClient) return;
         dispatch(setLoading(true));
-        setIsDataLoading(true);
         try {
-            // Fetch sales data
-            const result = await coreClient.getSales();
+            const filters: any = {};
+            if (activeSearchTerm) {
+                const orderId = parseInt(activeSearchTerm);
+                if (!isNaN(orderId)) {
+                    filters.order_id = orderId;
+                }
+            }
+            if (paymentMethodFilter !== 'all') {
+                filters.payment_method = paymentMethodFilter;
+            }
+            const result = await coreClient.getSales(filters);
             setSalesData(result);
-
-            // Calculate totals
-            const total = result.reduce((sum, sale) => sum + sale.total, 0);
-            setTotalSales(total);
-            setTotalOrders(result.length);
-            setAverageOrderValue(total / result.length || 0);
-
-            // Fetch weekly sales data
-            const weeklyData = await coreClient.getWeeklySales();
-            setWeeklySales(weeklyData);
         } catch (error) {
             console.error('Error fetching sales data:', error);
             dispatch(setError('Failed to fetch sales data'));
+            toast.error('Failed to fetch sales data');
         } finally {
-            setIsDataLoading(false);
             dispatch(setLoading(false));
         }
     };
 
-    const chartData: ChartData<'bar'> = {
-        labels: weeklySales.map(day => day.date),
-        datasets: [
-            {
-                label: 'Sales',
-                data: weeklySales.map(day => day.total),
-                backgroundColor: 'rgba(255, 99, 132, 0.5)',
-            },
-        ],
-    };
-
-    const chartOptions: ChartOptions<'bar'> = {
-        responsive: true,
-        plugins: {
-            legend: {
-                position: 'top' as const,
-            },
-            title: {
-                display: true,
-                text: 'Weekly Sales',
-            },
-        },
-    };
-
-    const columns = [
-        { name: "ORDER ID", uid: "id" },
-        { name: "DATE", uid: "date" },
-        { name: "TOTAL", uid: "total" },
-        { name: "PAYMENT METHOD", uid: "paymentMethod" },
-        { name: "STATUS", uid: "status" },
-        { name: "ACTIONS", uid: "actions" },
-    ];
-
-    const renderCell = (sale: SaleRecord, columnKey: React.Key) => {
-        const cellValue = sale[columnKey as keyof SaleRecord];
-        switch (columnKey) {
-            case "total":
-                return (
-                    <div className="flex flex-col">
-                        <p className="text-bold text-sm capitalize">${sale.total.toFixed(2)}</p>
-                        <p className="text-bold text-sm capitalize text-default-400">${sale.taxAmount.toFixed(2)} tax</p>
-                    </div>
-                );
-            case "status":
-                return (
-                    <Chip className="capitalize" color={sale.status === "completed" ? "success" : "danger"} size="sm" variant="flat">
-                        {sale.status}
-                    </Chip>
-                );
-            case "actions":
-                return (
-                    <div className="relative flex items-center gap-2">
-                        <Tooltip content="Details">
-                            <span className="text-lg text-default-400 cursor-pointer active:opacity-50">
-                                <EyeIcon />
-                            </span>
-                        </Tooltip>
-                    </div>
-                );
-            default:
-                return cellValue;
+    const handleSearchKeyPress = (event: React.KeyboardEvent<HTMLInputElement>) => {
+        if (event.key === 'Enter') {
+            setActiveSearchTerm(searchTerm);
         }
     };
+
+    const onPrintReceipt = (orderId: number, event: React.MouseEvent) => {
+        handlePrintReceipt(orderId, event, coreClient, dispatch, false);
+    };
+
 
     if (isLoading || !isInitialized || !coreClient) {
         return <LoadingScreen />;
     }
 
     return (
-        <div className="min-h-screen bg-gray-100">
+        <div style={styles.container}>
             <Head>
-                <title>Sales Management | Wendy's</title>
+                <title>Sales Management</title>
             </Head>
 
-            <main className="container mx-auto px-4 py-8">
-                <h1 className="text-3xl font-bold mb-8 text-red-600">Sales Management</h1>
+            <main style={styles.main}>
+                <motion.header
+                    style={styles.header}
+                    initial={{ opacity: 0, y: -20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5 }}
+                >
+                    <h1 style={styles.title}>Sales Management</h1>
+                </motion.header>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                    <div className="bg-white p-6 rounded-lg shadow">
-                        <h2 className="text-xl font-semibold mb-2">Total Sales</h2>
-                        <p className="text-3xl font-bold text-green-600">${totalSales.toFixed(2)}</p>
+                <motion.div
+                    style={styles.searchContainer}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5, delay: 0.2 }}
+                >
+                    <div style={{ position: 'relative', width: '100%', marginRight: '16px' }}>
+                        <Search size={18} style={styles.searchIcon} />
+                        <input
+                            type="text"
+                            placeholder="Search sales by Order ID..."
+                            style={styles.searchInput}
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            onKeyPress={handleSearchKeyPress}
+                        />
                     </div>
-                    <div className="bg-white p-6 rounded-lg shadow">
-                        <h2 className="text-xl font-semibold mb-2">Orders</h2>
-                        <p className="text-3xl font-bold text-blue-600">{totalOrders}</p>
-                    </div>
-                    <div className="bg-white p-6 rounded-lg shadow">
-                        <h2 className="text-xl font-semibold mb-2">Average Order Value</h2>
-                        <p className="text-3xl font-bold text-purple-600">${averageOrderValue.toFixed(2)}</p>
-                    </div>
-                </div>
+                    <select
+                        style={styles.select}
+                        value={paymentMethodFilter}
+                        onChange={(e) => setPaymentMethodFilter(e.target.value)}
+                    >
+                        <option value="all">All Payment Methods</option>
+                        <option value="cash">Cash</option>
+                        <option value="credit">Credit Card</option>
+                        {/* Add other payment methods as needed */}
+                    </select>
+                </motion.div>
 
-                <div className="bg-white p-6 rounded-lg shadow mb-8">
-                    <Bar data={chartData} options={chartOptions} />
-                </div>
-
-                <div className="bg-white p-6 rounded-lg shadow">
-                    <h2 className="text-2xl font-semibold mb-4">Sales Records</h2>
-                    <Table aria-label="Sales records table">
-                        <TableHeader columns={columns}>
-                            {(column) => (
-                                <TableColumn key={column.uid} align={column.uid === "actions" ? "center" : "start"}>
-                                    {column.name}
-                                </TableColumn>
-                            )}
-                        </TableHeader>
-                        <TableBody items={salesData} isLoading={isDataLoading} loadingContent={<>Loading...</>}>
-                            {(item) => (
-                                <TableRow key={item.id}>
-                                    {(columnKey) => <TableCell>{renderCell(item, columnKey)}</TableCell>}
-                                </TableRow>
-                            )}
-                        </TableBody>
-                    </Table>
-                </div>
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5, delay: 0.4 }}
+                >
+                    <table style={styles.table}>
+                        <thead>
+                            <tr>
+                                <th style={styles.tableHeader}>Order ID</th>
+                                <th style={styles.tableHeader}>Total Amount</th>
+                                <th style={styles.tableHeader}>Tax Amount</th>
+                                <th style={styles.tableHeader}>Payment Method</th>
+                                <th style={styles.tableHeader}>Transaction Date</th>
+                                <th style={styles.tableHeader}>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <AnimatePresence>
+                                {salesData.map((sale) => (
+                                    <motion.tr
+                                        key={sale.id}
+                                        initial={{ opacity: 0 }}
+                                        animate={{ opacity: 1 }}
+                                        exit={{ opacity: 0 }}
+                                        transition={{ duration: 0.3 }}
+                                        style={styles.tableRow}
+                                        whileHover={{ backgroundColor: getColor('background-primary') }}
+                                    >
+                                        <td style={styles.tableCell}>{sale.order_id}</td>
+                                        <td style={styles.tableCell}>${sale.total_amount.toFixed(2)}</td>
+                                        <td style={styles.tableCell}>${sale.tax_amount.toFixed(2)}</td>
+                                        <td style={styles.tableCell}>{sale.payment_method}</td>
+                                        <td style={styles.tableCell}>
+                                            {new Date(sale.transaction_date).toLocaleString()}
+                                        </td>
+                                        <td style={styles.tableCell}>
+                                            <motion.button
+                                                whileHover={{ scale: 1.05 }}
+                                                whileTap={{ scale: 0.95 }}
+                                                // style={{ ...styles.button, color: getColor('secondary') }}
+                                                onClick={(e) => onPrintReceipt(sale.id, e)}
+                                            >
+                                                <Printer style={{ marginRight: '5px' }} />
+                                                Print
+                                            </motion.button>
+                                        </td>
+                                    </motion.tr>
+                                ))}
+                            </AnimatePresence>
+                        </tbody>
+                    </table>
+                </motion.div>
             </main>
         </div>
     );

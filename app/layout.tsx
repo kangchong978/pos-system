@@ -5,6 +5,8 @@ import Sidebar from '../components/sidebar';
 import { Toaster } from "react-hot-toast";
 import { store } from "@/store";
 import { Provider } from "react-redux";
+import { getColor, ThemeProvider, useTheme } from "@/components/ThemeContext";
+import { useMemo } from "react";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -18,20 +20,22 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-
   return (
-    <html lang="en">
+    <html lang="en" style={{ backgroundColor: getColor('background-primary') }}>
       <Provider store={store}>
-        <body className={inter.className}>
-          <Toaster />
-          {/* <CheckUserInfo /> */}
-          <div style={{ paddingLeft: '60px', backgroundColor: '' }}>
-            {children}
-          </div>
-          <Sidebar />
-        </body>
-      </Provider>
+        <ThemeProvider>
 
+          <body className={inter.className}>
+            <Toaster />
+            {/* <CheckUserInfo /> */}
+            <div>
+              {children}
+            </div>
+            <Sidebar />
+          </body>
+        </ThemeProvider>
+
+      </Provider>
     </html>
   );
 }

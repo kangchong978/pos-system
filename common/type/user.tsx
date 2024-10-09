@@ -5,7 +5,12 @@ interface User {
     accessToken: string;
     phoneNumber: string;
     role: [string];
+    gender?: string,
+    address?: string,
+    dob?: string,
+
     accessibleRoute: [RouteAuth];
+    doneFeedbackToday: boolean;
 }
 
 interface Employee {
@@ -14,7 +19,12 @@ interface Employee {
     email?: string,
     phoneNumber?: string,
     role?: string,
-    [key: string]: any;
+    // [key: string]: any;
     tempPassword?: string,
+    gender?: string,
+    address?: string,
+    dob?: string,
+    id?: number,
+
 
 }

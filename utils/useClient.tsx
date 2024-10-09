@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation';
 
 export const useCoreClient = (skipAuthCheck = false) => {
     const dispatch = useDispatch<AppDispatch>();
-    const { isInitialized, isLoading, coreClient, error } = useSelector((state: RootState) => state.app);
+    const { isInitialized, isLoading, coreClient, error, showEmployeeFeedback } = useSelector((state: RootState) => state.app);
     const pathname = usePathname();
     const initializationChecked = useRef(false);
 
@@ -36,6 +36,7 @@ export const useCoreClient = (skipAuthCheck = false) => {
         coreClient,
         error,
         setAppLoading,
-        clearAppError
+        clearAppError,
+        showEmployeeFeedback
     };
 };

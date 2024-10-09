@@ -1,8 +1,12 @@
-import React from 'react';
+import React, { useMemo } from 'react';
+
 
 import { Utensils, ShoppingBag, Table, Table2 } from 'lucide-react';
 import { Badge, Card, CardBody, CardHeader, CardTitle } from 'reactstrap';
 import { OrderType } from '@/common/type/order';
+import { motion } from 'framer-motion';
+import { getColor } from '../utils/colorUtils';
+import { useTheme } from './ThemeContext';
 
 interface OrderStatusCardProps {
     orderId: number;
@@ -12,64 +16,121 @@ interface OrderStatusCardProps {
     onClick: () => void;
 }
 
-
 const OrderStatusCard: React.FC<OrderStatusCardProps> = ({ orderId, orderType, tableName, orderStatus, onClick }) => {
+
+    const { currentTheme } = useTheme(); // Get the current theme
+    const styles = useMemo(() => ({
+        card: {
+            backgroundColor: getColor('background-primary'),
+            borderRadius: '10px',
+            border: `1px solid ${getColor('border')}`,
+            padding: '16px',
+            marginBottom: '12px',
+            cursor: 'pointer',
+            transition: 'all 0.3s ease',
+        },
+        header: {
+            marginBottom: '12px',
+        },
+        title: {
+            fontSize: '18px',
+            fontWeight: 'bold' as const,
+            color: getColor('text-primary'),
+        },
+        body: {
+            display: 'flex',
+            flexDirection: 'column' as const,
+            gap: '8px',
+        },
+        row: {
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+        },
+        icon: {
+            marginRight: '6px',
+        },
+        text: {
+            fontSize: '14px',
+            color: getColor('text-secondary'),
+            display: 'flex',
+            alignItems: 'center',
+        },
+        badge: {
+            padding: '4px 8px',
+            borderRadius: '9999px',
+            fontSize: '12px',
+            fontWeight: 'bold' as const,
+            color: getColor('background-primary'),
+        }
+    }), [currentTheme]); // Recalculate styles when theme changes
+
     const getStatusColor = (status: string) => {
         switch (status.toLowerCase()) {
             case 'preparing':
-                return 'bg-yellow-500';
+                return getColor('status-preparing');
             case 'ready':
-                return 'bg-green-500';
+                return getColor('status-ready');
             case 'delivered':
-                return 'bg-blue-500';
+                return getColor('status-delivered');
             default:
-                return 'bg-gray-500';
+                return getColor('status-default');
         }
     };
 
     const getOrderTypeIcon = (type: string) => {
         return type.toLowerCase() === 'dinein' ? (
-            <Utensils className="w-5 h-5 mr-1" />
+            <Utensils size={16} style={styles.icon} />
         ) : (
-            <ShoppingBag className="w-5 h-5 mr-1" />
+            <ShoppingBag size={16} style={styles.icon} />
         );
     };
 
     const getOrderTypeName = (type: string) => {
-        return type.toLowerCase() === 'dinein' ? (
-            <p>Dine-In</p>
-        ) : (
-            <p>Take-Away</p>
-        );
+        return type.toLowerCase() === 'dinein' ? 'Dine-In' : 'Take-Away';
     };
 
     return (
-        <Card className="shadow hover:shadow-xl transition-shadow duration-300 p-[10px] mb-[10px] rounded-[10px] border" onClick={onClick}>
-            <CardHeader className="">
-                <CardTitle className="text-lg font-bold text-gray-800 mb-[10px]">Order#{orderId}</CardTitle>
-            </CardHeader>
-            <CardBody>
-                <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center text-sm font-medium text-gray-600 mb-[5px]">
-                            {getOrderTypeIcon(orderType)}
-                            {getOrderTypeName(orderType)}
-                        </div>
-                        {tableName && (
-                            <div className="flex items-center text-sm font-medium text-gray-600 mb-[5px]">
-                                <Table className="w-5 h-5 mr-1"></Table>
-                                {tableName}
-                            </div>
-                        )}
-                    </div>
-                    <div className="">
-                        <Badge className={`${getStatusColor(orderStatus)} text-white px-3 py-1 rounded-full text-sm font-semibold`}>
-                            {orderStatus}
-                        </Badge>
-                    </div>
+        <motion.div
+            style={styles.card}
+            whileHover={{
+                backgroundColor: getColor('surface'),
+                boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+            }}
+            whileTap={{ scale: 0.98 }}
+            onClick={onClick}
+        >
+            <div style={styles.header}>
+                <h3 style={styles.title}>Order #{orderId}</h3>
+            </div>
+            <div style={styles.body}>
+                <div style={styles.row}>
+                    <span style={styles.text}>
+                        {getOrderTypeIcon(orderType)}
+                        {getOrderTypeName(orderType)}
+                    </span>
+                    {tableName && (
+                        <span style={styles.text}>
+                            <Table size={16} style={styles.icon} />
+                            {tableName}
+                        </span>
+                    )}
                 </div>
-            </CardBody>
-        </Card>
+                <div style={styles.row}>
+                    <motion.span
+                        style={{
+                            ...styles.badge,
+                            backgroundColor: getStatusColor(orderStatus),
+                        }}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.3 }}
+                    >
+                        {orderStatus}
+                    </motion.span>
+                </div>
+            </div>
+        </motion.div>
     );
 };
 

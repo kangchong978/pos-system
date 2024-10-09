@@ -2,32 +2,863 @@
 @tailwind components;
 @tailwind utilities;
 
+
 :root {
-  --foreground-rgb: 0, 0, 0;
-  --background-start-rgb: 214, 219, 220;
-  --background-end-rgb: 255, 255, 255;
+  /* Light theme */
+  --color-primary: 107 166 232;
+  /* Lighter blue for better visibility */
+  --color-primary-dark: 74 144 226;
+  /* Original blue as darker shade */
+  --color-secondary: 80 227 194;
+  /* Mint green */
+
+  --color-background-primary: 255 255 255;
+  /* Light background */
+  --color-background-secondary: 243 244 246;
+  /* Slightly darker light gray */
+  --color-background-overlay: 255 255 255 / 0.7;
+  /* Light overlay */
+  --color-background-selected: 236 228 228;
+  /* Light red for selected state */
+
+  --color-surface: 243 244 246;
+  /* Light surface */
+  --color-border: 200 200 200;
+  /* Light gray for borders */
+  --color-accent: 255 122 147;
+  /* Coral pink accent */
+
+  --color-on-primary: 255 255 255;
+  /* White on primary */
+  --color-on-secondary: 26 32 44;
+  /* Dark text on mint */
+  --color-on-background: 45 55 72;
+  /* Dark blue-gray text on light background */
+  --color-on-surface: 45 55 72;
+  /* Dark text on light surface */
+
+  --color-error: 245 101 101;
+  /* Lighter red for errors */
+  --color-error-light: 254 215 215;
+  /* Very light red for error backgrounds */
+  --color-success: 72 187 120;
+  /* Slightly darker green for success */
+  --color-warning: 246 173 85;
+  /* Lighter orange for warnings */
+
+  --color-text-primary: 45 55 72;
+  /* Dark blue-gray text */
+  --color-text-secondary: 107 114 128;
+  /* Muted dark gray text */
+  --color-text-disabled: 160 174 192;
+  /* Light gray for disabled text */
+  --color-text-light: 255 255 255;
+  /* White */
+  --color-text-selected: 255 122 147;
+  /* Coral pink for selected text */
+  --color-text-label: 107 114 128;
+  /* Gray for label text */
+
+  --color-button-primary: 107 122 232;
+  /* Lighter indigo */
+  --color-button-hover: 133 146 239;
+  /* Even lighter indigo for hover */
+
+  --color-chip: 44 122 123;
+  /* Darker teal for chip background */
+  --color-chip-text: 129 230 217;
+  /* Light teal for chip text */
+
+  --color-disabled: 160 174 192;
+  /* Lighter gray for disabled state */
+
+  --color-table-available: 243 244 246;
+  /* Light surface for available */
+  --color-table-occupied: 107 166 232;
+  /* Lighter blue for occupied */
+  --color-table-hover: 200 200 200;
+  /* Light gray for hover */
+
+  --color-remove-area: 107 166 232;
+  /* Lighter blue for remove area */
+
+  --color-status-preparing: 214 158 46;
+  /* Darker yellow for preparing */
+  --color-status-ready: 56 161 105;
+  /* Darker green for ready */
+  --color-status-delivered: 49 130 206;
+  /* Darker blue for delivered */
+  --color-status-default: 113 128 150;
+  /* Darker gray for default */
 }
 
-/* @media (prefers-color-scheme: dark) {
-  :root {
-    --foreground-rgb: 255, 255, 255;
-    --background-start-rgb: 0, 0, 0;
-    --background-end-rgb: 0, 0, 0;
-  }
-} */
+[data-theme="ocean-dark"] {
 
-body {
-  color: rgb(var(--foreground-rgb));
-  /* background: linear-gradient(
-      to bottom,
-      transparent,
-      rgb(var(--background-end-rgb))
-    )
-    rgb(var(--background-start-rgb)); */
+  /* Default theme */
+  --color-primary: 107 166 232;
+  /* Lighter blue for better visibility */
+  --color-primary-dark: 74 144 226;
+  /* Original blue becomes the darker shade */
+  --color-secondary: 80 227 194;
+  /* Mint green */
+
+  --color-background-primary: 26 32 44;
+  /* Dark blue-gray */
+  --color-background-secondary: 45 55 72;
+  /* Slightly lighter blue-gray */
+  --color-background-overlay: 0 0 0 / 0.7;
+  /* Darker overlay */
+  --color-background-selected: 61 45 45;
+  /* Darker red for selected state */
+
+  --color-surface: 45 55 72;
+  /* Dark blue-gray surface */
+  --color-border: 74 85 104;
+  /* Darker gray for borders */
+  --color-accent: 255 122 147;
+  /* Lighter coral pink for better contrast */
+
+  --color-on-primary: 255 255 255;
+  /* White on primary */
+  --color-on-secondary: 26 32 44;
+  /* Dark text on mint */
+  --color-on-background: 226 232 240;
+  /* Light gray text on dark background */
+  --color-on-surface: 226 232 240;
+  /* Light gray text on surface */
+
+  --color-error: 245 101 101;
+  /* Lighter red for errors */
+  --color-error-light: 254 215 215;
+  /* Very light red for error backgrounds */
+  --color-success: 72 187 120;
+  /* Slightly darker green for success */
+  --color-warning: 246 173 85;
+  /* Lighter orange for warnings */
+
+  --color-text-primary: 226 232 240;
+  /* Light gray-blue */
+  --color-text-secondary: 160 174 192;
+  /* Muted light blue-gray */
+  --color-text-disabled: 113 128 150;
+  /* Darker gray for disabled text */
+  --color-text-light: 255 255 255;
+  /* White */
+  --color-text-selected: 255 122 147;
+  /* Lighter coral pink for selected text */
+  --color-text-label: 107 114 128;
+  /* Gray for label text */
+
+  --color-button-primary: 107 122 232;
+  /* Lighter indigo */
+  --color-button-hover: 133 146 239;
+  /* Even lighter indigo for hover */
+
+  --color-chip: 44 122 123;
+  /* Darker teal for chip background */
+  --color-chip-text: 129 230 217;
+  /* Light teal for chip text */
+
+  --color-disabled: 74 85 104;
+  /* Darker gray for disabled state */
+
+  --color-table-available: 45 55 72;
+  /* Dark blue-gray for available */
+  --color-table-occupied: 107 166 232;
+  /* Lighter blue for occupied */
+  --color-table-hover: 74 85 104;
+  /* Slightly lighter for hover */
+
+  --color-remove-area: 107 166 232;
+  /* Lighter blue for remove area */
+
+  --color-status-preparing: 214 158 46;
+  /* Darker yellow for preparing */
+  --color-status-ready: 56 161 105;
+  /* Darker green for ready */
+  --color-status-delivered: 49 130 206;
+  /* Darker blue for delivered */
+  --color-status-default: 113 128 150;
+  /* Darker gray for default */
+
 }
 
-@layer utilities {
-  .text-balance {
-    text-wrap: balance;
-  }
+[data-theme="mcd-light"] {
+  --color-primary: 218 41 28;
+  /* McDonald's red */
+  --color-primary-dark: 179 34 24;
+  /* Darker red */
+  --color-secondary: 255 199 44;
+  /* McDonald's yellow */
+  --color-background-primary: 255 255 255;
+  /* White */
+  --color-background-secondary: 242 242 242;
+  /* Light grey */
+  --color-background-overlay: 0 0 0;
+  /* Black overlay */
+  --color-background-selected: 255 240 200;
+  /* Light yellow */
+  --color-surface: 255 255 255;
+  /* White */
+  --color-border: 216 216 216;
+  /* Light grey */
+  --color-accent: 255 199 44;
+  /* McDonald's yellow */
+  --color-on-primary: 255 255 255;
+  /* White */
+  --color-on-secondary: 0 0 0;
+  /* Black */
+  --color-on-background: 39 37 31;
+  /* Dark grey */
+  --color-on-surface: 39 37 31;
+  /* Dark grey */
+  --color-error: 213 0 0;
+  /* Red */
+  --color-error-light: 255 235 234;
+  /* Light red */
+  --color-success: 0 100 0;
+  /* Green */
+  --color-warning: 255 160 0;
+  /* Orange */
+  --color-text-primary: 39 37 31;
+  /* Dark grey */
+  --color-text-secondary: 109 110 113;
+  /* Medium grey */
+  --color-text-disabled: 153 153 153;
+  /* Light grey */
+  --color-button-primary: 218 41 28;
+  /* McDonald's red */
+  --color-button-hover: 179 34 24;
+  /* Darker red */
+  --color-chip: 255 199 44;
+  /* McDonald's yellow */
+  --color-chip-text: 0 0 0;
+  /* Black */
+  --color-disabled: 216 216 216;
+  /* Light grey */
+  --color-table-available: 240 240 245;
+  /* White */
+  --color-table-occupied: 255 240 200;
+  /* Light yellow */
+  --color-table-hover: 242 242 242;
+  /* Light grey */
+  --color-remove-area: 213 0 0;
+  /* Red */
+  --color-status-preparing: 255 199 44;
+  /* McDonald's yellow */
+  --color-status-ready: 0 100 0;
+  /* Green */
+  --color-status-delivered: 218 41 28;
+  /* McDonald's red */
+  --color-status-default: 109 110 113;
+  /* Medium grey */
+}
+
+[data-theme="mcd-dark"] {
+  --color-primary: 255 199 44;
+  /* McDonald's yellow */
+  --color-primary-dark: 230 179 40;
+  /* Darker yellow */
+  --color-secondary: 218 41 28;
+  /* McDonald's red */
+  --color-background-primary: 39 37 31;
+  /* Dark grey */
+  --color-background-secondary: 61 58 50;
+  /* Slightly lighter dark grey */
+  --color-background-overlay: 0 0 0;
+  /* Black overlay */
+  --color-background-selected: 82 78 67;
+  /* Medium dark grey */
+  --color-surface: 61 58 50;
+  /* Slightly lighter dark grey */
+  --color-border: 82 78 67;
+  /* Medium dark grey */
+  --color-accent: 218 41 28;
+  /* McDonald's red */
+  --color-on-primary: 0 0 0;
+  /* Black */
+  --color-on-secondary: 255 255 255;
+  /* White */
+  --color-on-background: 255 255 255;
+  /* White */
+  --color-on-surface: 255 255 255;
+  /* White */
+  --color-error: 255 107 107;
+  /* Light red */
+  --color-error-light: 81 23 23;
+  /* Dark red */
+  --color-success: 76 175 80;
+  /* Green */
+  --color-warning: 255 213 79;
+  /* Light yellow */
+  --color-text-primary: 255 255 255;
+  /* White */
+  --color-text-secondary: 204 204 204;
+  /* Light grey */
+  --color-text-disabled: 153 153 153;
+  /* Medium grey */
+  --color-button-primary: 255 199 44;
+  /* McDonald's yellow */
+  --color-button-hover: 230 179 40;
+  /* Darker yellow */
+  --color-chip: 218 41 28;
+  /* McDonald's red */
+  --color-chip-text: 255 255 255;
+  /* White */
+  --color-disabled: 82 78 67;
+  /* Medium dark grey */
+  --color-table-available: 61 58 50;
+  /* Slightly lighter dark grey */
+  --color-table-occupied: 82 78 67;
+  /* Medium dark grey */
+  --color-table-hover: 102 97 84;
+  /* Lighter grey */
+  --color-remove-area: 255 107 107;
+  /* Light red */
+  --color-status-preparing: 255 199 44;
+  /* McDonald's yellow */
+  --color-status-ready: 76 175 80;
+  /* Green */
+  --color-status-delivered: 218 41 28;
+  /* McDonald's red */
+  --color-status-default: 153 153 153;
+  /* Medium grey */
+}
+
+[data-theme="wendys-light"] {
+  /* Wendy's Light Theme */
+  --color-primary: 232 44 33;
+  /* Wendy's red */
+  --color-primary-dark: 185 36 27;
+  /* Darker shade of Wendy's red */
+  --color-secondary: 0 102 204;
+  /* Wendy's blue */
+
+  --color-background-primary: 255 255 255;
+  /* White background */
+  --color-background-secondary: 248 249 250;
+  /* Very light gray */
+  --color-background-overlay: 255 255 255 / 0.8;
+  /* Light overlay */
+  --color-background-selected: 235 235 235;
+  /* Soft gray for selected states */
+
+  --color-surface: 255 255 255;
+  /* White surface */
+  --color-border: 210 210 210;
+  /* Light gray for borders */
+  --color-accent: 0 102 204;
+  /* Wendy's blue accent */
+
+  --color-on-primary: 255 255 255;
+  /* White on primary */
+  --color-on-secondary: 255 255 255;
+  /* White text on blue */
+  --color-on-background: 50 50 50;
+  /* Dark gray text */
+  --color-on-surface: 50 50 50;
+  /* Dark text on light surfaces */
+
+  --color-error: 245 101 101;
+  /* Light red for errors */
+  --color-error-light: 254 215 215;
+  /* Very light red for error backgrounds */
+  --color-success: 72 187 120;
+  /* Green for success */
+  --color-warning: 246 173 85;
+  /* Lighter orange for warnings */
+
+  --color-text-primary: 50 50 50;
+  /* Dark gray text */
+  --color-text-secondary: 102 102 102;
+  /* Muted gray text */
+  --color-text-disabled: 180 180 180;
+  /* Light gray for disabled text */
+  --color-text-light: 255 255 255;
+  /* White */
+  --color-text-selected: 232 44 33;
+  /* Wendy's red for selected text */
+  --color-text-label: 102 102 102;
+  /* Gray for label text */
+
+  --color-button-primary: 232 44 33;
+  /* Wendy's red */
+  --color-button-hover: 185 36 27;
+  /* Darker red for hover */
+
+  --color-chip: 0 102 204;
+  /* Wendy's blue for chip background */
+  --color-chip-text: 255 255 255;
+  /* White for chip text */
+
+  --color-disabled: 200 200 200;
+  /* Light gray for disabled state */
+
+  --color-table-available: 255 255 255;
+  /* White for available */
+  --color-table-occupied: 232 44 33;
+  /* Wendy's red for occupied */
+  --color-table-hover: 235 235 235;
+  /* Light gray for hover */
+
+  --color-remove-area: 232 44 33;
+  /* Wendy's red for remove area */
+
+  --color-status-preparing: 255 204 0;
+  /* Bright yellow for preparing */
+  --color-status-ready: 72 187 120;
+  /* Green for ready */
+  --color-status-delivered: 0 102 204;
+  /* Wendy's blue for delivered */
+  --color-status-default: 113 128 150;
+  /* Dark gray for default */
+}
+
+[data-theme="wendys-dark"] {
+  /* Wendy's Dark Theme */
+  --color-primary: 232 44 33;
+  /* Wendy's red */
+  --color-primary-dark: 185 36 27;
+  /* Darker red */
+  --color-secondary: 0 102 204;
+  /* Wendy's blue */
+
+  --color-background-primary: 34 34 34;
+  /* Dark gray background */
+  --color-background-secondary: 45 45 45;
+  /* Slightly lighter dark gray */
+  --color-background-overlay: 0 0 0 / 0.7;
+  /* Dark overlay */
+  --color-background-selected: 61 61 61;
+  /* Dark gray for selected state */
+
+  --color-surface: 45 45 45;
+  /* Dark surface */
+  --color-border: 74 85 104;
+  /* Dark gray for borders */
+  --color-accent: 0 102 204;
+  /* Wendy's blue accent */
+
+  --color-on-primary: 255 255 255;
+  /* White on primary */
+  --color-on-secondary: 255 255 255;
+  /* White on blue */
+  --color-on-background: 226 232 240;
+  /* Light gray on dark background */
+  --color-on-surface: 226 232 240;
+  /* Light gray on surface */
+
+  --color-error: 245 101 101;
+  /* Light red for errors */
+  --color-error-light: 254 215 215;
+  /* Very light red for error backgrounds */
+  --color-success: 72 187 120;
+  /* Green for success */
+  --color-warning: 246 173 85;
+  /* Orange for warnings */
+
+  --color-text-primary: 226 232 240;
+  /* Light gray text */
+  --color-text-secondary: 160 174 192;
+  /* Muted light gray */
+  --color-text-disabled: 113 128 150;
+  /* Darker gray for disabled text */
+  --color-text-light: 255 255 255;
+  /* White */
+  --color-text-selected: 232 44 33;
+  /* Wendy's red for selected text */
+  --color-text-label: 160 174 192;
+  /* Light gray for label text */
+
+  --color-button-primary: 232 44 33;
+  /* Wendy's red */
+  --color-button-hover: 185 36 27;
+  /* Darker red for hover */
+
+  --color-chip: 0 102 204;
+  /* Wendy's blue for chip background */
+  --color-chip-text: 255 255 255;
+  /* White for chip text */
+
+  --color-disabled: 74 85 104;
+  /* Dark gray for disabled state */
+
+  --color-table-available: 45 45 45;
+  /* Dark surface for available */
+  --color-table-occupied: 232 44 33;
+  /* Wendy's red for occupied */
+  --color-table-hover: 74 74 74;
+  /* Slightly lighter dark gray for hover */
+
+  --color-remove-area: 232 44 33;
+  /* Wendy's red for remove area */
+
+  --color-status-preparing: 255 204 0;
+  /* Bright yellow for preparing */
+  --color-status-ready: 72 187 120;
+  /* Green for ready */
+  --color-status-delivered: 0 102 204;
+  /* Wendy's blue for delivered */
+  --color-status-default: 113 128 150;
+  /* Dark gray for default */
+}
+
+[data-theme="japanese-light"] {
+  /* Japanese Light Theme */
+  --color-primary: 189 73 50;
+  /* Muted red, inspired by traditional "Aka" (red) */
+  --color-primary-dark: 139 53 38;
+  /* Darker shade of red */
+
+  --color-secondary: 112 136 126;
+  /* Muted sage green, representing natural elements */
+
+  --color-background-primary: 255 255 247;
+  /* Light off-white, like "Shironeri" (unbleached silk) */
+  --color-background-secondary: 241 238 230;
+  /* Slightly darker off-white */
+  --color-background-overlay: 255 255 255 / 0.8;
+  /* Soft white overlay */
+  --color-background-selected: 240 222 205;
+  /* Light warm beige for selected items */
+
+  --color-surface: 255 255 247;
+  /* Same as the background for clean surface */
+  --color-border: 200 200 190;
+  /* Soft beige border */
+  --color-accent: 163 112 84;
+  /* Warm terracotta accent */
+
+  --color-on-primary: 255 255 255;
+  /* White on primary */
+  --color-on-secondary: 34 40 44;
+  /* Dark text on muted green */
+  --color-on-background: 34 40 44;
+  /* Dark gray text */
+  --color-on-surface: 34 40 44;
+  /* Dark text on light surfaces */
+
+  --color-error: 210 70 70;
+  /* Muted red for errors */
+  --color-error-light: 250 215 215;
+  /* Very light red for error background */
+  --color-success: 104 156 110;
+  /* Soft green for success */
+  --color-warning: 232 154 84;
+  /* Muted orange for warnings */
+
+  --color-text-primary: 34 40 44;
+  /* Dark gray text */
+  --color-text-secondary: 85 90 95;
+  /* Softer gray for secondary text */
+  --color-text-disabled: 160 160 155;
+  /* Light gray for disabled text */
+  --color-text-light: 255 255 255;
+  /* White */
+  --color-text-selected: 189 73 50;
+  /* Traditional red for selected text */
+  --color-text-label: 85 90 95;
+  /* Muted gray for label text */
+
+  --color-button-primary: 189 73 50;
+  /* Muted red for buttons */
+  --color-button-hover: 139 53 38;
+  /* Darker red for hover */
+
+  --color-chip: 112 136 126;
+  /* Muted green for chip background */
+  --color-chip-text: 255 255 255;
+  /* White text on chip */
+
+  --color-disabled: 200 200 190;
+  /* Soft beige for disabled states */
+
+  --color-table-available: 255 255 247;
+  /* Off-white for available tables */
+  --color-table-occupied: 189 73 50;
+  /* Red for occupied tables */
+  --color-table-hover: 241 238 230;
+  /* Slightly darker off-white for hover */
+
+  --color-remove-area: 189 73 50;
+  /* Muted red for remove area */
+
+  --color-status-preparing: 232 154 84;
+  /* Muted orange for preparing */
+  --color-status-ready: 104 156 110;
+  /* Soft green for ready */
+  --color-status-delivered: 112 136 126;
+  /* Muted sage green for delivered */
+  --color-status-default: 120 120 120;
+  /* Neutral gray for default */
+}
+
+[data-theme="japanese-dark"] {
+  /* Japanese Dark Theme */
+  --color-primary: 189 73 50;
+  /* Traditional red */
+  --color-primary-dark: 139 53 38;
+  /* Darker shade of red */
+
+  --color-secondary: 112 136 126;
+  /* Muted sage green */
+
+  --color-background-primary: 34 34 34;
+  /* Deep charcoal gray */
+  --color-background-secondary: 45 45 45;
+  /* Slightly lighter gray */
+  --color-background-overlay: 0 0 0 / 0.7;
+  /* Dark overlay */
+  --color-background-selected: 61 48 48;
+  /* Dark warm brown for selected items */
+
+  --color-surface: 45 45 45;
+  /* Dark gray surface */
+  --color-border: 85 85 85;
+  /* Dark gray for borders */
+  --color-accent: 163 112 84;
+  /* Warm terracotta accent */
+
+  --color-on-primary: 255 255 255;
+  /* White on primary */
+  --color-on-secondary: 255 255 255;
+  /* White text on muted green */
+  --color-on-background: 200 200 200;
+  /* Light gray on dark background */
+  --color-on-surface: 200 200 200;
+  /* Light gray on dark surface */
+
+  --color-error: 210 70 70;
+  /* Muted red for errors */
+  --color-error-light: 250 215 215;
+  /* Very light red for error background */
+  --color-success: 104 156 110;
+  /* Soft green for success */
+  --color-warning: 232 154 84;
+  /* Muted orange for warnings */
+
+  --color-text-primary: 200 200 200;
+  /* Light gray text */
+  --color-text-secondary: 160 160 160;
+  /* Muted gray */
+  --color-text-disabled: 113 113 113;
+  /* Dark gray for disabled text */
+  --color-text-light: 255 255 255;
+  /* White */
+  --color-text-selected: 189 73 50;
+  /* Traditional red for selected text */
+  --color-text-label: 160 160 160;
+  /* Gray for label text */
+
+  --color-button-primary: 189 73 50;
+  /* Muted red for buttons */
+  --color-button-hover: 139 53 38;
+  /* Darker red for hover */
+
+  --color-chip: 112 136 126;
+  /* Muted sage green for chip background */
+  --color-chip-text: 255 255 255;
+  /* White text on chip */
+
+  --color-disabled: 85 85 85;
+  /* Dark gray for disabled state */
+
+  --color-table-available: 45 45 45;
+  /* Dark surface for available */
+  --color-table-occupied: 189 73 50;
+  /* Red for occupied */
+  --color-table-hover: 61 61 61;
+  /* Slightly lighter gray for hover */
+
+  --color-remove-area: 189 73 50;
+  /* Muted red for remove area */
+
+  --color-status-preparing: 232 154 84;
+  /* Muted orange for preparing */
+  --color-status-ready: 104 156 110;
+  /* Soft green for ready */
+  --color-status-delivered: 112 136 126;
+  /* Muted sage green for delivered */
+  --color-status-default: 120 120 120;
+  /* Dark gray for default */
+}
+
+[data-theme="chinese-light"] {
+  /* Chinese Light Theme */
+  --color-primary: 200 16 46;
+  /* Bright red, symbolizing good fortune ("Chinese Red") */
+  --color-primary-dark: 150 12 35;
+  /* Darker red for depth */
+
+  --color-secondary: 255 198 41;
+  /* Gold, symbolizing wealth and prosperity */
+
+  --color-background-primary: 255 255 255;
+  /* Porcelain white */
+  --color-background-secondary: 244 241 228;
+  /* Light ivory tone */
+  --color-background-overlay: 255 255 255 / 0.8;
+  /* Soft white overlay */
+  --color-background-selected: 245 226 200;
+  /* Warm beige for selected state */
+
+  --color-surface: 255 255 255;
+  /* Porcelain white for surface */
+  --color-border: 225 225 225;
+  /* Light gray for borders */
+  --color-accent: 58 85 169;
+  /* Deep royal blue, symbolizing wisdom and serenity */
+
+  --color-on-primary: 255 255 255;
+  /* White on red */
+  --color-on-secondary: 34 34 34;
+  /* Dark text on gold */
+  --color-on-background: 45 45 45;
+  /* Dark gray for text on light background */
+  --color-on-surface: 45 45 45;
+  /* Dark text on light surface */
+
+  --color-error: 204 68 59;
+  /* Lighter red for errors */
+  --color-error-light: 252 217 217;
+  /* Light red for error background */
+  --color-success: 0 153 102;
+  /* Jade green, symbolizing harmony and health */
+  --color-warning: 240 173 78;
+  /* Muted yellow for warnings */
+
+  --color-text-primary: 45 45 45;
+  /* Dark gray for primary text */
+  --color-text-secondary: 100 100 100;
+  /* Muted gray for secondary text */
+  --color-text-disabled: 160 160 160;
+  /* Light gray for disabled text */
+  --color-text-light: 255 255 255;
+  /* White */
+  --color-text-selected: 200 16 46;
+  /* Bright red for selected text */
+  --color-text-label: 100 100 100;
+  /* Gray for label text */
+
+  --color-button-primary: 200 16 46;
+  /* Bright red for buttons */
+  --color-button-hover: 150 12 35;
+  /* Darker red for hover */
+
+  --color-chip: 0 153 102;
+  /* Jade green for chip background */
+  --color-chip-text: 255 255 255;
+  /* White text on chip */
+
+  --color-disabled: 225 225 225;
+  /* Light gray for disabled state */
+
+  --color-table-available: 255 255 255;
+  /* Porcelain white for available tables */
+  --color-table-occupied: 200 16 46;
+  /* Red for occupied */
+  --color-table-hover: 244 241 228;
+  /* Light ivory for hover */
+
+  --color-remove-area: 200 16 46;
+  /* Bright red for remove area */
+
+  --color-status-preparing: 255 198 41;
+  /* Gold for preparing */
+  --color-status-ready: 0 153 102;
+  /* Jade green for ready */
+  --color-status-delivered: 58 85 169;
+  /* Deep royal blue for delivered */
+  --color-status-default: 120 120 120;
+  /* Neutral gray for default */
+}
+
+[data-theme="chinese-dark"] {
+  /* Chinese Dark Theme */
+  --color-primary: 200 16 46;
+  /* Chinese red */
+  --color-primary-dark: 150 12 35;
+  /* Darker red */
+
+  --color-secondary: 255 198 41;
+  /* Gold */
+
+  --color-background-primary: 34 34 34;
+  /* Dark gray */
+  --color-background-secondary: 45 45 45;
+  /* Slightly lighter gray */
+  --color-background-overlay: 0 0 0 / 0.7;
+  /* Dark overlay */
+  --color-background-selected: 61 43 43;
+  /* Dark warm brown for selected state */
+
+  --color-surface: 45 45 45;
+  /* Dark surface */
+  --color-border: 85 85 85;
+  /* Dark gray for borders */
+  --color-accent: 58 85 169;
+  /* Deep royal blue */
+
+  --color-on-primary: 255 255 255;
+  /* White on primary */
+  --color-on-secondary: 255 255 255;
+  /* White text on gold */
+  --color-on-background: 200 200 200;
+  /* Light gray on dark background */
+  --color-on-surface: 200 200 200;
+  /* Light gray on dark surface */
+
+  --color-error: 204 68 59;
+  /* Lighter red for errors */
+  --color-error-light: 252 217 217;
+  /* Light red for error background */
+  --color-success: 0 153 102;
+  /* Jade green for success */
+  --color-warning: 240 173 78;
+  /* Muted yellow for warnings */
+
+  --color-text-primary: 200 200 200;
+  /* Light gray text */
+  --color-text-secondary: 160 160 160;
+  /* Muted gray */
+  --color-text-disabled: 113 113 113;
+  /* Dark gray for disabled text */
+  --color-text-light: 255 255 255;
+  /* White */
+  --color-text-selected: 200 16 46;
+  /* Chinese red for selected text */
+  --color-text-label: 160 160 160;
+  /* Gray for label text */
+
+  --color-button-primary: 200 16 46;
+  /* Red for buttons */
+  --color-button-hover: 150 12 35;
+  /* Darker red for hover */
+
+  --color-chip: 0 153 102;
+  /* Jade green for chip background */
+  --color-chip-text: 255 255 255;
+  /* White text on chip */
+
+  --color-disabled: 85 85 85;
+  /* Dark gray for disabled state */
+
+  --color-table-available: 45 45 45;
+  /* Dark surface for available */
+  --color-table-occupied: 200 16 46;
+  /* Red for occupied */
+  --color-table-hover: 61 61 61;
+  /* Slightly lighter gray for hover */
+
+  --color-remove-area: 200 16 46;
+  /* Red for remove area */
+
+  --color-status-preparing: 255 198 41;
+  /* Gold for preparing */
+  --color-status-ready: 0 153 102;
+  /* Jade green for ready */
+  --color-status-delivered: 58 85 169;
+  /* Deep royal blue for delivered */
+  --color-status-default: 120 120 120;
+  /* Dark gray for default */
 }

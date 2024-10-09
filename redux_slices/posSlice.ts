@@ -21,6 +21,11 @@ interface PosState {
     changeAmount: number;
     taxRate: number;
     showTableSelectionModal: boolean;
+    isCollapsed: boolean;
+    isSummaryExpanded: boolean;
+    currentPage: number;
+    totalProducts: number;
+    totalPages: number;
 }
 
 const initialState: PosState = {
@@ -31,6 +36,11 @@ const initialState: PosState = {
     changeAmount: 0,
     taxRate: 0,
     showTableSelectionModal: false,
+    isCollapsed: false,
+    isSummaryExpanded: false,
+    currentPage: 1,
+    totalProducts: 0,
+    totalPages: 1
 }
 
 const posSlice = createSlice({
@@ -93,9 +103,10 @@ const posSlice = createSlice({
                 };
             }
         },
-        changeOrderType: (state, action: PayloadAction<OrderType>) => {
+        changeOrderType: (state, action: PayloadAction<{ type: OrderType, id?: number }>) => {
             if (state.order) {
-                const newType = action.payload;
+                const newType = action.payload.type;
+                const tableId = action.payload.id;
                 if (newType === OrderType.TakeAway && state.order.orderType === OrderType.DineIn) {
                     // Remove table association
                     if (state.order.tableId && state.tables) {
@@ -110,9 +121,7 @@ const posSlice = createSlice({
                     state.order.tableId = undefined;
                 }
                 state.order.orderType = newType;
-                if (newType === OrderType.DineIn && state.order.orderType === OrderType.TakeAway) {
-                    state.showTableSelectionModal = true;
-                }
+                state.order.tableId = tableId;
             }
         },
 
@@ -144,7 +153,21 @@ const posSlice = createSlice({
                 };
             }
         },
-
+        setIsCollapsed: (state, action: PayloadAction<boolean>) => {
+            state.isCollapsed = action.payload;
+        },
+        setIsSummaryExpanded: (state, action: PayloadAction<boolean>) => {
+            state.isSummaryExpanded = action.payload;
+        },
+        setCurrentPage: (state, action: PayloadAction<number>) => {
+            state.currentPage = action.payload;
+        },
+        setTotalProducts: (state, action: PayloadAction<number>) => {
+            state.totalProducts = action.payload;
+        },
+        setTotalPages: (state, action: PayloadAction<number>) => {
+            state.totalPages = action.payload;
+        },
     }
 })
 
@@ -166,7 +189,12 @@ export const {
     changeOrderType,
     selectTable,
     setShowTableSelectionModal,
-    updateOrderCalculation
+    updateOrderCalculation,
+    setIsCollapsed,
+    setIsSummaryExpanded,
+    setTotalPages,
+    setTotalProducts,
+    setCurrentPage,
 } = posSlice.actions;
 
 export default posSlice.reducer;

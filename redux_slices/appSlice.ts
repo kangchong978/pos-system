@@ -34,7 +34,9 @@ export const checkAuthAndRoute = (): AppThunk => async (dispatch, getState) => {
     const currentPath = window.location.pathname;
 
     if (!client.isLoggedIn) {
-        window.location.href = '/login';
+        if (currentPath !== '/login') {
+            window.location.href = '/login';
+        }
     } else if (currentPath === '/') {
         const defaultRoute = accessibleRoutes.find(route => route.route === '/dashboard')
             || accessibleRoutes[0]
@@ -49,6 +51,7 @@ interface AppState {
     isInitialized: boolean;
     isLoading: boolean;
     coreClient: CoreClient | null;
+    showEmployeeFeedback: boolean;
     error: string | null;
 }
 
@@ -57,6 +60,7 @@ const initialState: AppState = {
     isLoading: true,
     coreClient: null,
     error: null,
+    showEmployeeFeedback: false
 };
 
 const appSlice = createSlice({
@@ -71,6 +75,10 @@ const appSlice = createSlice({
         },
         clearError: (state) => {
             state.error = null;
+        },
+        // this is used to check while employee are required to feedback after the first sale created
+        verifyIsRequiredFeedback: (state) => {
+            state.showEmployeeFeedback = !state.coreClient?.getUserInfo?.doneFeedbackToday ?? false;
         },
     },
     extraReducers: (builder) => {
@@ -92,5 +100,5 @@ const appSlice = createSlice({
     },
 });
 
-export const { setLoading, clearError, setError } = appSlice.actions;
+export const { setLoading, clearError, setError, verifyIsRequiredFeedback } = appSlice.actions;
 export default appSlice.reducer;

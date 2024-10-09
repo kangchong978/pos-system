@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import Head from 'next/head';
+import { motion } from 'framer-motion';
 import EmployeeModal from '../../components/empoyeeModal';
 import toast from 'react-hot-toast';
 import TempPasswordModal from '../../components/tempPasswordModal';
@@ -10,13 +11,105 @@ import { useDispatch } from 'react-redux';
 import { AppDispatch } from '@/store';
 import { setLoading } from '@/redux_slices/appSlice';
 import LoadingScreen from '@/components/LoadingScreen';
+import RoleInput from '@/components/roleInputField';
+
+import { Search } from 'lucide-react';
+import { getColor } from '@/utils/colorUtils';
+import { useTheme } from '@/components/ThemeContext';
+
+
 
 export default function Employees() {
+    const { currentTheme } = useTheme(); // Get the current theme
+
+    const styles = useMemo(() => ({
+        header: {
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: '1.5rem',
+        },
+        title: {
+            fontSize: '1.5rem',
+            fontWeight: 'bold',
+            color: getColor('primary'),
+        },
+        container: {
+            minHeight: '100vh',
+            backgroundColor: getColor('background-primary'),
+            padding: '2rem',
+        },
+        main: {
+            maxWidth: '1200px',
+            margin: '0 auto',
+        },
+
+        searchContainer: {
+            display: 'flex',
+            marginBottom: '1.5rem',
+        },
+        searchInput: {
+            width: '100%',
+            padding: '10px 16px',
+            paddingLeft: '40px',
+            borderRadius: '8px',
+            border: `1px solid ${getColor('border')}`,
+            fontSize: '14px',
+            backgroundColor: getColor('background-primary'),
+        },
+        searchIcon: {
+            position: 'absolute' as const,
+            left: '12px',
+            top: '50%',
+            transform: 'translateY(-50%)',
+            color: getColor('text-secondary'),
+        },
+        addButton: {
+            backgroundColor: getColor('primary'),
+            color: getColor('on-primary'),
+            padding: '0.5rem 1rem',
+            borderRadius: '0.375rem',
+            border: 'none',
+            cursor: 'pointer',
+            width: '200px',
+        },
+        table: {
+            width: '100%',
+            borderSpacing: '0 0.5rem',
+        },
+        tableHeader: {
+            backgroundColor: getColor('surface'),
+            color: getColor('text-primary'),
+            fontWeight: 'bold',
+            padding: '1rem',
+            borderBottom: `2px solid ${getColor('primary')}`,
+        },
+        tableRow: {
+            backgroundColor: getColor('surface'),
+            transition: 'box-shadow 0.3s',
+            color: getColor('text-primary'),
+        },
+        tableCell: {
+            padding: '1rem',
+            borderBottom: `1px solid ${getColor('border')}`,
+        },
+        actionButton: {
+            marginRight: '0.5rem',
+            padding: '0.5rem',
+            border: 'none',
+            borderRadius: '0.25rem',
+            cursor: 'pointer',
+            transition: 'background-color 0.3s',
+        },
+    }), [currentTheme]); // Re-compute styles when theme changes
+
+
+
     const [searchTerm, setSearchTerm] = useState('');
     const [isEdit, setIsEdit] = useState(false);
     const [employees, setEmployees] = useState<Employee[]>([]);
     const [currentEmployee, setCurrentEmployee] = useState<Employee | null>(null);
-    const [savedTempPassword, setSavedTempPassword] = useState<{ id: string; tempPassword: string }[]>([]);
+    const [savedTempPassword, setSavedTempPassword] = useState<{ id: number; tempPassword: string }[]>([]);
     const [tempPassword, setTempPassword] = useState<string>('');
     const [isPageLoading, setIsPageLoading] = useState(true);
 
@@ -62,7 +155,7 @@ export default function Employees() {
     }
 
     const handleDeleteEmployee = async (data: Employee) => {
-        if (!coreClient) return;
+        if (!coreClient || !data.id) return;
         dispatch(setLoading(true));
         try {
             await coreClient.removeUser(data.id);
@@ -105,96 +198,120 @@ export default function Employees() {
         }
     }
 
-    const buildRoleChips = (roles: string) => {
-        if (roles === '') return null;
-        const convertedRoles = roles.split(',').map(role => role.trim());
 
-        return (
-            <>
-                {convertedRoles.map((e, index) => (
-                    <div key={index} className="flex">
-                        <div className="bg-gray-300 text-white px-2 my-1 mr-1 sm:rounded">
-                            <p>{e}</p>
-                        </div>
-                    </div>
-                ))}
-            </>
-        );
-    }
 
     if (isPageLoading) {
         return <LoadingScreen />;
     }
 
     return (
-        <div className="min-h-screen bg-gray-100">
-            <Head>
-                <title>Employee Management | Wendy's</title>
-            </Head>
+        <div style={styles.container}>
 
-            <main className="container mx-auto px-4 py-8">
-                <h1 className="text-3xl font-bold mb-8 text-red-600">Employee Management</h1>
+            <main style={styles.main}>
+                <motion.header
+                    style={styles.header}
+                    initial={{ opacity: 0, y: -20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5 }}
+                >
+                    <h1 style={styles.title}>Employees</h1>
+                </motion.header>
 
-                <div className="mb-6 flex justify-between items-center">
-                    <input
-                        type="text"
-                        placeholder="Search employees..."
-                        className="p-2 border rounded w-64"
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                    />
-                    <button
-                        className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
+                <motion.div
+                    style={styles.searchContainer}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5, delay: 0.2 }}
+                >
+                    <div style={{ position: 'relative', width: '100%', marginRight: '16px' }}>
+                        <Search size={18} style={styles.searchIcon} />
+                        <input
+                            type="text"
+                            placeholder="Search orders by ID..."
+                            style={styles.searchInput}
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                        />
+                    </div>
+                    <motion.button
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        style={styles.addButton}
                         onClick={handleAddEmployee}
                     >
                         Add Employee
-                    </button>
-                </div>
+                    </motion.button>
+                </motion.div>
 
-                <div className="bg-white shadow overflow-hidden sm:rounded-lg">
-                    <table className="min-w-full divide-y divide-gray-200">
-                        <thead className="bg-gray-50">
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5, delay: 0.4 }}
+                >
+                    <table style={styles.table}>
+                        <thead>
                             <tr>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Username</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phone Number</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Roles</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                <th style={styles.tableHeader}>Username</th>
+                                <th style={styles.tableHeader}>Email</th>
+                                <th style={styles.tableHeader}>Phone Number</th>
+                                <th style={styles.tableHeader}>Roles</th>
+                                <th style={styles.tableHeader}>Actions</th>
                             </tr>
                         </thead>
-                        <tbody className="bg-white divide-y divide-gray-200">
+                        <tbody>
                             {filteredEmployees.map((employee) => {
                                 const tempPassword = savedTempPassword.find(item => item.id === employee.id)?.tempPassword;
 
                                 return (
-                                    <tr key={employee.username}>
-                                        <td className="px-6 py-4 whitespace-nowrap">{employee.username}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap">{employee.email}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap">{employee.phoneNumber}</td>
-                                        <td className="flex px-6 py-4 whitespace-nowrap">{buildRoleChips(employee.role ?? '')}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                            <button
-                                                className="text-indigo-600 hover:text-indigo-900 mr-2"
+                                    <motion.tr
+                                        key={employee.username}
+                                        style={styles.tableRow}
+                                        whileHover={{ boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)' }}
+                                    >
+                                        <td style={styles.tableCell}>{employee.username}</td>
+                                        <td style={styles.tableCell}>{employee.email}</td>
+                                        <td style={styles.tableCell}>{employee.phoneNumber}</td>
+                                        <td style={styles.tableCell}>
+                                            <RoleInput
+                                                value={employee?.role ?? ''}
+                                                onChange={() => { }}
+                                                disabled={true}
+                                            />
+                                        </td>
+                                        <td style={styles.tableCell}>
+                                            <motion.button
+                                                disabled={tempPassword == undefined}
+                                                whileHover={{ scale: 1.1 }}
+                                                whileTap={{ scale: 0.9 }}
+                                                style={{ ...styles.actionButton, backgroundColor: getColor((tempPassword) ? 'secondary' : 'background-secondary'), color: getColor('on-primary') }}
+                                                onClick={() => setTempPassword(tempPassword ?? '')}
+                                            >
+                                                View Password
+                                            </motion.button>
+                                            <motion.button
+                                                whileHover={{ scale: 1.1 }}
+                                                whileTap={{ scale: 0.9 }}
+                                                style={{ ...styles.actionButton, backgroundColor: getColor('secondary'), color: getColor('on-primary') }}
                                                 onClick={() => handleEditEmployee(employee)}
                                             >
                                                 Edit
-                                            </button>
-                                            <button
-                                                className="text-gray-400 hover:text-red-500 mr-2"
+                                            </motion.button>
+                                            <motion.button
+                                                whileHover={{ scale: 1.1 }}
+                                                whileTap={{ scale: 0.9 }}
+                                                style={{ ...styles.actionButton, backgroundColor: getColor('primary'), color: getColor('on-primary') }}
                                                 onClick={() => handleDeleteEmployee(employee)}
                                             >
                                                 Delete
-                                            </button>
-                                            <button className='flex' onClick={() => setTempPassword(tempPassword ?? '')}>
-                                                {tempPassword}
-                                            </button>
+                                            </motion.button>
+
                                         </td>
-                                    </tr>
+                                    </motion.tr>
                                 )
                             })}
                         </tbody>
                     </table>
-                </div>
+                </motion.div>
 
                 {currentEmployee && <EmployeeModal
                     employee={currentEmployee}
@@ -203,7 +320,9 @@ export default function Employees() {
                     onSubmit={handleSubmitEmployee}
                     isEdit={isEdit}
                     isProfile={false}
-                />}
+                    onPasswordReset={function (): void {
+                        // Implementation not provided
+                    }} />}
                 {tempPassword && <TempPasswordModal
                     tempPassword={tempPassword}
                     onClose={() => setTempPassword('')}
@@ -211,4 +330,7 @@ export default function Employees() {
             </main>
         </div>
     );
+
+
+
 }

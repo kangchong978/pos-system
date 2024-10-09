@@ -1,12 +1,15 @@
+import { FeedbackData } from "@/common/type/employeeFeedbackData";
 import { Order, OrderStatus, OrderType } from "@/common/type/order";
 import { MyFile, Product } from "@/common/type/product";
-import { SaleRecord, WeeklySale } from "@/common/type/sales";
+import { SaleRecord } from "@/common/type/sales";
 import toast from "react-hot-toast";
 
 export default class CoreClient {
     static instance: CoreClient | null = null;
     private serverUrl: String = 'http://localhost:6001'; // Load clientInfo from localStorage
     private userInfo: User | null = null; // Load clientInfo from localStorage
+    private setting: CompanyInfo | null = null; // Load clientInfo from localStorage
+
 
     constructor() {
         // Private constructor to prevent direct instantiation
@@ -17,7 +20,13 @@ export default class CoreClient {
         if (typeof window !== 'undefined') {
             const rawClient = localStorage.getItem('userInfo');
             this.userInfo = rawClient ? JSON.parse(rawClient) : null;
-            // You can add more async initialization logic here if needed
+            await this.loadSettings();
+
+        }
+    }
+    async loadSettings(): Promise<void> {
+        if (typeof window !== 'undefined') {
+            this.setting = await this.getSettings();
         }
     }
 
@@ -114,7 +123,7 @@ export default class CoreClient {
         return await this.post('/api/auth/register', payload);
     }
 
-    async removeUser(id: string) {
+    async removeUser(id: number) {
         await this.post('/api/auth/remove', { id });
     }
 
@@ -123,7 +132,11 @@ export default class CoreClient {
     }
 
     async logout() {
-        await this.post('/api/auth/logout', null);
+        try {
+            this.post('/api/auth/logout', null);
+        } catch (error: any) {
+            toast.error(error.toString());
+        }
 
         localStorage.removeItem('userInfo');
         this.userInfo = null; // Clear clientInfo on logout
@@ -136,6 +149,15 @@ export default class CoreClient {
     get getUserInfo(): User | null {
         if (this.userInfo == null) return null;
         return this.userInfo; // Getter to check if user is logged in
+    }
+    get getSetting(): CompanyInfo | null {
+        if (this.setting == null) return null;
+        return this.setting; // Getter to check if user is logged in
+    }
+
+    set updateClientFeedback(val: boolean) {
+        if (!this.userInfo) return;
+        this.userInfo.doneFeedbackToday = val;
     }
 
     async getEmployees(): Promise<Employee[]> {
@@ -183,11 +205,11 @@ export default class CoreClient {
         return await this.post('/api/manage/updateRoutesAuth', { routesAuth });
     }
 
-    async getProducts(payload: { searchTerm: string, page: number, categoryFilter: string }): Promise<Product[]> {
+    async getProducts(payload: { searchTerm: string, page: number, categoryFilter: string, itemsPerPage: number }): Promise<{ products: Product[], total: number }> {
         var result = await
             this.post('/api/product/getProducts', payload);
 
-        return (result) ? result['products'].map((v: Product) => new Product(v.name, v.image, v.category, v.description, v.code, v.price, v.variation, v.id)) : [];
+        return { products: (result) ? result['products'].map((v: Product) => new Product(v.name, v.image, v.category, v.description, v.code, v.price, v.variation, v.id)) : [], total: result.total };
     }
     async updateProduct(payload: Product) {
         await this.post('/api/product/updateProduct', payload);
@@ -310,8 +332,24 @@ export default class CoreClient {
         return await this.post('/api/order/removeTable', { id });
     }
 
-    async printReceipt(orderId: number): Promise<Blob> {
-        const url = `/api/order/receipt/${orderId}`;
+    async printOrderList(orderId: number): Promise<Blob> {
+        const url = `/api/order/orderList/${orderId}`;
+        const response = await fetch(`${this.serverUrl}${url}`, {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${this.userInfo?.accessToken}`
+            },
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Failed to generate receipt');
+        }
+
+        return await response.blob();
+    }
+    async printReceipt(saleId: number): Promise<Blob> {
+        const url = `/api/sale/receipt/${saleId}`;
         const response = await fetch(`${this.serverUrl}${url}`, {
             method: 'GET',
             headers: {
@@ -327,8 +365,8 @@ export default class CoreClient {
         return await response.blob();
     }
 
-    async getDashboardStats(): Promise<DashboardStats> {
-        const result = await this.get('/api/dashboard/getDashboardStats');
+    async getDashboardStats(payload: { startDate: Date, endDate: Date }): Promise<DashboardStats> {
+        const result = await this.post('/api/dashboard/getDashboardStats', payload);
         return result;
     }
 
@@ -342,15 +380,30 @@ export default class CoreClient {
 
     }
 
-    async getSales(): Promise<SaleRecord[]> {
-        const result = await this.get('/api/sale/getSales');
-        return result ? result.sales : [];
+    async getSales(filters?: { status?: string; id?: number }): Promise<SaleRecord[]> {
+        let url = '/api/sale/getSales';
+
+        if (filters) {
+            const queryParams = new URLSearchParams();
+            if (filters.status) queryParams.append('status', filters.status);
+            if (filters.id) queryParams.append('id', filters.id.toString());
+            url += `?${queryParams.toString()}`;
+        }
+
+        const result = await this.get(url);
+        return result ? result['sales'].map((v: SaleRecord) => SaleRecord.fromPlainObject(v)) : [];
     }
 
-    async getWeeklySales(): Promise<WeeklySale[]> {
-        const result = await this.get('/api/sale/getWeeklySales');
-        return result ? result.weeklySales : [];
+    async submitEmployeeFeedback(payload: FeedbackData): Promise<boolean> {
+        return await this.post('/api/feedback/recordEmployeeFeedback', payload);
     }
+
+    async getFeedbacks() {
+        var result = await
+            this.get('/api/feedback/getEmployeeFeedbacks');
+        return (result) ? result['feedbacks'] : [];
+    }
+
 }
 
 

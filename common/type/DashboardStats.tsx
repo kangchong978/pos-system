@@ -1,6 +1,8 @@
 interface DashboardStats {
-    totalOrders: number;
     totalRevenue: number;
+    totalOrders: number;
     totalProductsSold: number;
-    revenueByDate: { date: string; revenue: number }[];
+    salesOverview: { date: string; revenue: number }[];
+    topSellingItems: { name: string; quantity: number }[];
+    dailyTransactions: { date: string; count: number }[];
 }

@@ -1,10 +1,12 @@
+import { getColor } from '../utils/colorUtils';
 import React from 'react';
-import { BarLoader } from 'react-spinners';
+import { BarLoader, BeatLoader, HashLoader, PropagateLoader } from 'react-spinners';
 
 const LoadingScreen: React.FC = () => {
     return (
-        <div className="fixed inset-0 flex items-center justify-center bg-gray-100">
-            <BarLoader color='#F27059'></BarLoader>
+        // className = "fixed inset-0 flex items-center justify-center bg-gray-100"
+        <div style={{ inset: 0, display: 'flex', position: 'fixed', alignItems: 'center', justifyContent: 'center', backgroundColor: getColor('background-primary') }}>
+            <HashLoader color={getColor('primary')}></HashLoader>
         </div>
     );
 };

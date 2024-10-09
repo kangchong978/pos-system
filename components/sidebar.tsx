@@ -1,14 +1,17 @@
-'use client';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { motion } from 'framer-motion';
 import getFirstCharacters from '@/common/common';
 import EmployeeModal from './empoyeeModal';
+import EmployeeFeedbackModal from './employeeFeedbackModal';
 import { useCoreClient } from '@/utils/useClient';
 import { useDispatch } from 'react-redux';
 import { AppDispatch } from '@/store';
-import { setLoading } from '@/redux_slices/appSlice';
-
+import { setLoading, verifyIsRequiredFeedback } from '@/redux_slices/appSlice';
+import { getColor } from '../utils/colorUtils';
+import { useTheme } from '@/components/ThemeContext';
+import toast from 'react-hot-toast';
 
 const Sidebar = () => {
     const pathname = usePathname();
@@ -17,10 +20,63 @@ const Sidebar = () => {
     const [employeeProfile, setEmployeeProfile] = useState<Employee | null>(null);
     const [companyLogo, setCompanyLogo] = useState<string | null>(null);
 
-    const { isInitialized, coreClient } = useCoreClient(pathname == '/login' || pathname == '/logout');
+    const { isInitialized, coreClient, showEmployeeFeedback } = useCoreClient(pathname == '/login' || pathname == '/logout');
     const dispatch = useDispatch<AppDispatch>();
+    const { currentTheme } = useTheme();
 
-
+    const styles = useMemo(() => ({
+        sidebar: {
+            width: '80px',
+            backgroundColor: getColor('surface'),
+            height: '100vh',
+            position: 'fixed',
+            left: 0,
+            top: 0,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            padding: '20px 0',
+            boxShadow: '2px 0 10px rgba(0,0,0,0.1)',
+        } as React.CSSProperties,
+        logo: {
+            width: '60px',
+            height: '60px',
+            marginBottom: '40px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+        } as React.CSSProperties,
+        nav: {
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: '20px',
+        } as React.CSSProperties,
+        icon: {
+            width: '24px',
+            height: '24px',
+            transition: 'all 0.3s ease',
+        } as React.CSSProperties,
+        profile: {
+            width: '40px',
+            height: '40px',
+            borderRadius: '50%',
+            backgroundColor: getColor('primary'),
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: getColor('on-primary'),
+            fontWeight: 'bold',
+            marginTop: 'auto',
+            marginBottom: '20px',
+            cursor: 'pointer',
+        } as React.CSSProperties,
+        logoImage: {
+            maxWidth: '100%',
+            maxHeight: '100%',
+            objectFit: 'contain',
+        } as React.CSSProperties,
+    }), [currentTheme]);
 
     useEffect(() => {
         if (isInitialized && coreClient) {
@@ -33,7 +89,7 @@ const Sidebar = () => {
             const fetchCompanySettings = async () => {
                 dispatch(setLoading(true));
                 try {
-                    const settings = await coreClient.getSettings();
+                    const settings = coreClient.getSetting;
                     if (settings && typeof settings.company_logo === 'string') {
                         setCompanyLogo('http://localhost:6001' + settings.company_logo);
                     }
@@ -46,7 +102,7 @@ const Sidebar = () => {
 
             fetchCompanySettings();
         }
-    }, [isInitialized, coreClient, dispatch]);
+    }, [isInitialized, coreClient?.getUserInfo, coreClient?.getSetting, dispatch]);
 
     const isActive = (path: string) => pathname === path;
 
@@ -58,29 +114,65 @@ const Sidebar = () => {
                     email: userInfo.email,
                     phoneNumber: userInfo.phoneNumber,
                     role: userInfo.role.toString(),
-                    username: userInfo.username
+                    username: userInfo.username,
+                    // tempPassword: userInfo.tempPassword,
+                    gender: userInfo.gender,
+                    address: userInfo.address,
+                    id: userInfo.id,
+
                 };
                 setEmployeeProfile(employee);
             }
         }
     }
 
-    if (pathname == '/login') return (<></>)
+    const handleSubmitProfile = async (data: Employee) => {
+        if (!coreClient) return;
+        if (data.email === '' || data.phoneNumber === '' || data.username === '' || data.role?.length === 0) {
+            toast.error("Please fill in all information.");
+            return;
+        }
 
+        dispatch(setLoading(true));
+        try {
+            const userInfo = coreClient.getUserInfo;
+
+            if (!userInfo) return;
+            // if (isEdit) {
+            await coreClient.updateUser({ ...data, id: userInfo.id });
+            // } else {
+            //     const result = await coreClient.registerUser(data);
+            //     if (result) {
+            //         setSavedTempPassword([{ 'id': result.id, 'tempPassword': result.tempPassword }, ...savedTempPassword]);
+            //         setTempPassword(result.tempPassword);
+            //     }
+            // }
+            // setCurrentEmployee(null);
+            // await loadUsers();
+            toast.success('Profile updated successfully');
+        } catch (error) {
+            console.error('Failed to submit profile:', error);
+            toast.error('Failed to submit profile');
+        } finally {
+            dispatch(setLoading(false));
+        }
+    }
+
+
+    if (pathname == '/login' || !isInitialized) return null;
 
     return (
-        <div className="w-16 bg-white h-screen fixed left-0 top-0 flex flex-col items-center py-4">
-            <div className="mb-8">
-                {companyLogo ? (
-                    <img src={companyLogo} alt="Company Logo" className="w-15 h-10 object-contain" />
-                ) : (
-                    <div className="w-15 h-10 bg-gray-200 flex items-center justify-center">
-                        <span className="text-gray-400 text-xs">No Logo</span>
-                    </div>
-                )}
+        <motion.div
+            style={styles.sidebar}
+            initial={{ x: -80 }}
+            animate={{ x: 0 }}
+            transition={{ duration: 0.5 }}
+        >
+            <div style={styles.logo}>
+                {companyLogo && <img src={companyLogo} alt="Company Logo" style={styles.logoImage} />}
             </div>
 
-            <nav className="flex flex-col items-center space-y-6">
+            <nav style={styles.nav}>
                 {[
                     { href: '/pos', icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 2a10 10 0 1 1 0 20 10 10 0 1 1 0-20zm0 6v8m-4-4h8" /> },
                     { href: '/dashboard', icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /> },
@@ -93,44 +185,77 @@ const Sidebar = () => {
                 ]
                     .filter(({ href }) => accessibleRoute.some(route => route.route === href))
                     .map(({ href, icon }) => (
-                        <Link
+                        <motion.div
                             key={href}
-                            href={href}
-                            className={`${isActive(href) ? 'text-red-500' : 'text-gray-400 hover:text-red-500'}`}
+                            whileHover={{ scale: 1.1 }}
+                            whileTap={{ scale: 0.95 }}
                         >
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                {icon}
-                            </svg>
-                        </Link>
+                            <Link href={href}>
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    style={{
+                                        ...styles.icon,
+                                        color: isActive(href) ? getColor('primary') : getColor('on-surface'),
+                                    }}
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                    stroke="currentColor"
+                                >
+                                    {icon}
+                                </svg>
+                            </Link>
+                        </motion.div>
                     ))}
             </nav>
 
-            <div className="bg-red-500 rounded-full w-10 h-10 flex items-center justify-center mb-4 mt-auto" onClick={onEditProfile}>
-                <span className="text-white font-bold ">{usernameShort}</span>
-            </div>
+            <motion.div
+                style={styles.profile}
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={onEditProfile}
+            >
+                <span>{usernameShort}</span>
+            </motion.div>
 
-            <div className="flex flex-col items-center space-y-6">
-                <Link href={'/logout'} className={'text-gray-400 hover:text-red-500'}>
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <motion.div
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.95 }}
+            >
+                <Link href={'/logout'}>
+                    <svg xmlns="http://www.w3.org/2000/svg" style={styles.icon} fill="none" viewBox="0 0 24 24" stroke={getColor('on-surface')}>
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 3H7C5.89543 3 5 3.89543 5 5V19C5 20.1046 5.89543 21 7 21H15" />
                         <path d="M19 12L15 8M19 12L15 16M19 12H9" strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} />
                     </svg>
                 </Link>
-            </div>
+            </motion.div>
+            {coreClient && coreClient.isLoggedIn && showEmployeeFeedback && < EmployeeFeedbackModal
+                isOpen={true}
+                onClose={() => { }}
+                onSubmit={async (v) => {
+                    await coreClient.submitEmployeeFeedback(v);
+                    coreClient.updateClientFeedback = true;
+                    dispatch(verifyIsRequiredFeedback())
 
+                }}
+                username={coreClient.getUserInfo!.username}
+            />
+            }
             {employeeProfile && (
                 <EmployeeModal
                     employee={employeeProfile}
                     setEmployee={setEmployeeProfile}
                     onClose={() => setEmployeeProfile(null)}
-                    onSubmit={function (employee: any): void {
-                        throw new Error('Function not implemented.');
-                    }}
+                    onSubmit={handleSubmitProfile}
                     isEdit={false}
                     isProfile={true}
+                    onPasswordReset={function (): void {
+                        throw new Error('Function not implemented.');
+                    }}
                 />
             )}
-        </div>
+
+        </motion.div>
+
     );
 };
 

@@ -19,7 +19,7 @@ export default function Home() {
 
   return (
     <>
-      return <LoadingScreen />;
+      <LoadingScreen />;
     </>
   );
 }

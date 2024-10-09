@@ -1,16 +1,21 @@
 'use client';
 
-import { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import toast from 'react-hot-toast';
+import { motion } from 'framer-motion';
 import { useDispatch } from 'react-redux';
 import { AppDispatch } from '@/store';
 import { setLoading } from '@/redux_slices/appSlice';
 import { useCoreClient } from '@/utils/useClient';
+import toast from 'react-hot-toast';
+import { getColor } from '@/utils/colorUtils';
+import { useTheme } from '@/components/ThemeContext';
+import LoadingScreen from '@/components/LoadingScreen';
 
 enum LoginPageState { LoginState, ResetState };
 
 export default function Login() {
+    const { currentTheme } = useTheme();
     const [pageState, setPageState] = useState<LoginPageState>(LoginPageState.LoginState);
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
@@ -20,7 +25,93 @@ export default function Login() {
 
     const router = useRouter();
     const dispatch = useDispatch<AppDispatch>();
-    const { coreClient } = useCoreClient(true); // Pass true to skip auth check
+    const { coreClient, isInitialized } = useCoreClient(true); // Pass true to skip auth check
+
+    const styles = useMemo(() => ({
+        container: {
+            minHeight: '100vh',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            background: `linear-gradient(135deg, ${getColor('background-primary')} 0%, ${getColor('primary')} 100%)`,
+            fontFamily: 'Arial, sans-serif',
+        },
+        loginContainer: {
+            display: 'flex',
+            backgroundColor: getColor('surface'),
+            borderRadius: '8px',
+            overflow: 'hidden',
+            boxShadow: '0 10px 25px rgba(0,0,0,0.1)',
+            width: '800px',
+        },
+        loginForm: {
+            flex: 1,
+            padding: '40px',
+        },
+        title: {
+            fontSize: '28px',
+            marginBottom: '20px',
+            color: getColor('on-surface'),
+        },
+        subtitle: {
+            fontSize: '20px',
+            marginBottom: '30px',
+            color: getColor('on-surface'),
+        },
+        input: {
+            width: '100%',
+            padding: '10px',
+            marginBottom: '15px',
+            border: `1px solid ${getColor('on-surface')}20`,
+            borderRadius: '4px',
+            fontSize: '16px',
+            color: getColor('on-surface'),
+            backgroundColor: getColor('background-primary'),
+        },
+        button: {
+            width: '100%',
+            padding: '12px',
+            backgroundColor: getColor('primary'),
+            color: getColor('on-primary'),
+            border: 'none',
+            borderRadius: '4px',
+            fontSize: '16px',
+            cursor: 'pointer',
+            transition: 'background-color 0.3s',
+        },
+        imageContainer: {
+            flex: 1,
+            background: getColor('background-primary'),
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '40px',
+        },
+        image: {
+            maxWidth: '100%',
+            height: 'auto',
+        },
+        resetContainer: {
+            backgroundColor: getColor('surface'),
+            padding: '40px',
+            borderRadius: '8px',
+            boxShadow: '0 10px 25px rgba(0,0,0,0.1)',
+            width: '400px',
+        },
+        resetTitle: {
+            fontSize: '24px',
+            marginBottom: '20px',
+            color: getColor('on-surface'),
+            textAlign: 'center' as const,
+        },
+        errorText: {
+            color: getColor('error'),
+            marginBottom: '15px',
+        },
+        svgColor: {
+            color: getColor('primary'), // This will be used for the SVG fill color
+        },
+    }), [currentTheme]);
 
     const passwordValidation = (v: string) => {
         const regex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{6,}$/;
@@ -36,10 +127,9 @@ export default function Login() {
                 Minimum length of 6 characters.`);
             return;
         } else if (newPassword != newPasswordConfirm) {
-            setError('Confirmation password not match.');
+            setError('Confirmation password does not match.');
             return;
         }
-
         dispatch(setLoading(true));
         try {
             if (coreClient) {
@@ -77,84 +167,94 @@ export default function Login() {
         }
     };
 
-    if (pageState == LoginPageState.LoginState)
-        return (
-            <div className="min-h-screen flex items-center justify-center bg-gray-100">
-                <div className="bg-white p-8 rounded-lg shadow-md w-96">
-                    <h1 className="text-2xl font-bold mb-6 text-center">Login</h1>
+    const containerVariants = {
+        hidden: { opacity: 0, y: 50 },
+        visible: { opacity: 1, y: 0, transition: { duration: 0.5 } }
+    };
 
-                    <div className="mb-4">
-                        <label htmlFor="username" className="block text-sm font-medium text-gray-700">Username</label>
+    if (!isInitialized) {
+        return <LoadingScreen />;
+    }
+
+
+    if (pageState === LoginPageState.LoginState) {
+        return (
+            <div style={styles.container}>
+                <motion.div
+                    initial="hidden"
+                    animate="visible"
+                    variants={containerVariants}
+                    style={styles.loginContainer}
+                >
+                    <div style={styles.loginForm}>
+                        <h1 style={styles.title}>POS System</h1>
+                        <h2 style={styles.subtitle}>Login</h2>
                         <input
                             type="text"
-                            id="username"
+                            placeholder="Username"
                             value={username}
                             onChange={(e) => setUsername(e.target.value)}
-                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-red-300 focus:ring focus:ring-red-200 focus:ring-opacity-50"
-                            required
+                            style={styles.input}
                         />
-                    </div>
-                    <div className="mb-6">
-                        <label htmlFor="password" className="block text-sm font-medium text-gray-700">Password</label>
                         <input
                             type="password"
-                            id="password"
+                            placeholder="Password"
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
-                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-red-300 focus:ring focus:ring-red-200 focus:ring-opacity-50"
-                            required
+                            style={styles.input}
                         />
+                        <button
+                            onClick={handleLogin}
+                            style={styles.button}
+                            onMouseOver={(e) => e.currentTarget.style.backgroundColor = getColor('primary-dark')}
+                            onMouseOut={(e) => e.currentTarget.style.backgroundColor = getColor('primary')}
+                        >
+                            Log In
+                        </button>
                     </div>
-                    <button
-                        onClick={handleLogin}
-                        className="w-full bg-red-600 text-white py-2 px-4 rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-50"
-                    >
-                        Log In
-                    </button>
-                </div>
+                    <div style={styles.imageContainer}>
+                        <img src="undraw_tasting_re_3k5a.svg" alt="Login illustration" style={styles.image} />
+                    </div>
+                </motion.div>
             </div>
         );
-    else if (pageState == LoginPageState.ResetState)
+    } else if (pageState === LoginPageState.ResetState) {
         return (
-            <div className="min-h-screen flex items-center justify-center bg-gray-100">
-                <div className="bg-white p-8 rounded-lg shadow-md w-96">
-                    <h1 className="text-2xl font-bold mb-6 text-center">Hi {username}, please set your password</h1>
-
-                    <div className="mb-6">
-                        <label htmlFor="newPassword" className="block text-sm font-medium text-gray-700">New Password</label>
-                        <input
-                            type="password"
-                            id="newPassword"
-                            onChange={(e) => setNewPassword(e.target.value)}
-                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-red-300 focus:ring focus:ring-red-200 focus:ring-opacity-50"
-                            required
-                        />
-                    </div>
-
-                    <div className="mb-6">
-                        <label htmlFor="newPasswordConfirm" className="block text-sm font-medium text-gray-700">Confirm Password</label>
-                        <input
-                            type="password"
-                            id="newPasswordConfirm"
-                            onChange={(e) => setNewPasswordConfirm(e.target.value)}
-                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-red-300 focus:ring focus:ring-red-200 focus:ring-opacity-50"
-                            required
-                        />
-                    </div>
-
+            <div style={styles.container}>
+                <motion.div
+                    initial="hidden"
+                    animate="visible"
+                    variants={containerVariants}
+                    style={styles.resetContainer}
+                >
+                    <h1 style={styles.resetTitle}>Hi {username}, please set your password</h1>
+                    <input
+                        type="password"
+                        placeholder="New Password"
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        style={styles.input}
+                    />
+                    <input
+                        type="password"
+                        placeholder="Confirm Password"
+                        onChange={(e) => setNewPasswordConfirm(e.target.value)}
+                        style={styles.input}
+                    />
                     {error && (
-                        <p className='text-red-800 mb-4' dangerouslySetInnerHTML={{ __html: error }} />
+                        <p style={styles.errorText} dangerouslySetInnerHTML={{ __html: error }} />
                     )}
-
                     <button
                         onClick={handleResetPassword}
-                        className="w-full bg-red-600 text-white py-2 px-4 rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-50"
+                        style={styles.button}
+                        onMouseOver={(e) => e.currentTarget.style.backgroundColor = getColor('primary-dark')}
+                        onMouseOut={(e) => e.currentTarget.style.backgroundColor = getColor('primary')}
                     >
                         Confirm
                     </button>
-                </div>
+                </motion.div>
             </div>
         );
+    }
 
     return null;
 }
