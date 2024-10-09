@@ -97,8 +97,10 @@ export class Order {
             obj.subTotal,
             obj.tax,
             obj.total,
+            obj.createDate,
+            obj.updateDate,
             obj.orderStatus,
-            obj.tableId
+            obj.tableId,
         );
     }
 

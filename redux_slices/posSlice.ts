@@ -50,6 +50,9 @@ const posSlice = createSlice({
         setOrders: (state, action: PayloadAction<Order[] | undefined>) => {
             state.orders = action.payload;
         },
+        setTables: (state, action: PayloadAction<PosTable[]>) => {
+            state.tables = action.payload;
+        },
         setOrder: (state, action: PayloadAction<Order | undefined>) => {
             state.order = action.payload;
         },
@@ -73,9 +76,6 @@ const posSlice = createSlice({
         },
         setPaymentLoadingStatus: (state, action: PayloadAction<PaymentLoadingStatus>) => {
             state.paymentLoadingStatus = action.payload;
-        },
-        setTables: (state, action: PayloadAction<PosTable[]>) => {
-            state.tables = action.payload;
         },
         setSelectedPaymentMethod: (state, action: PayloadAction<string | null>) => {
             state.selectedPaymentMethod = action.payload;
