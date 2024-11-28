@@ -13,20 +13,35 @@ export default class CoreClient {
 
     constructor() {
         // Private constructor to prevent direct instantiation
-        // this.loadClientInfo();
     }
 
     async loadClientInfo(): Promise<void> {
         if (typeof window !== 'undefined') {
             const rawClient = localStorage.getItem('userInfo');
-            this.userInfo = rawClient ? JSON.parse(rawClient) : null;
+            const parsed = rawClient ? JSON.parse(rawClient) : null;
+            this.userInfo = parsed;
+
+            if (!this.userInfo?.refreshToken) return; /* not loggin */
+
+            /* update access token if refresh token valid */
+
+            await this.refreshAccessToken();
+            await this.loadUserProfile();
             await this.loadSettings();
 
         }
     }
+
+    async loadUserProfile(): Promise<void> {
+        if (typeof window !== 'undefined') {
+            await this.getLatestUserInfo();
+        }
+    }
+
     async loadSettings(): Promise<void> {
         if (typeof window !== 'undefined') {
             this.setting = await this.getSettings();
+            this.loadWhitelabeling();
         }
     }
 
@@ -52,14 +67,17 @@ export default class CoreClient {
         if (result.ok) {
             var res = await result.json();
             return res;
-        } else {
+        } else if (result.status == 401) {
+            // handle invalid token
+            if (this.userInfo?.refreshToken) {
+                this.logout();
+            } else {
 
+            }
+        } else {
             var res = await result.json();
             var error = res.error ?? 'Undefined Error Occur';
             toast.error(error);
-            if (error == 'Invalid token' && this.userInfo) {
-                this.logout();
-            }
 
         }
 
@@ -78,18 +96,45 @@ export default class CoreClient {
         if (result.ok) {
             var res = await result.json();
             return res;
-        } else {
+        } else if (result.status == 401) {
+            // handle invalid token
+            if (this.userInfo?.refreshToken) {
+                this.logout();
+            } else {
 
+            }
+        }
+        else {
             var res = await result.json();
             var error = res.error ?? 'Undefined Error Occur';
             toast.error(error);
-            if (error == 'Invalid token') {
-                this.logout();
-            }
-
         }
 
     }
+    async refreshAccessToken() {
+        const refreshToken = this.userInfo?.refreshToken;
+        var result = await fetch('http://localhost:6001/api/auth/refreshAccessToken', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ refreshToken }),
+        })
+        if (result.ok) {
+            var res = await result.json();
+            if (this.userInfo) {
+                this.userInfo.accessToken = res.accessToken; // Set clientInfo after login
+                localStorage.setItem('userInfo', JSON.stringify(this.userInfo)); // Store userInfo in localStorage
+            }
+        } else if (result.status == 401) {
+            await this.logout();
+        } else {
+            var res = await result.json();
+            var error = res.error ?? 'Undefined Error Occur';
+            toast.error(error);
+        }
+    }
+
     async resetPassword(payload: { newPassword: string, newPasswordConfirm: string }) {
         return this.post('/api/auth/resetPassword', payload);
     }
@@ -119,6 +164,11 @@ export default class CoreClient {
         return;
     }
 
+    async resetUserPassword(payload: Employee) {
+        return await this.post('/api/auth/requestResetPassword', payload);
+    }
+
+
     async registerUser(payload: Employee) {
         return await this.post('/api/auth/register', payload);
     }
@@ -139,6 +189,7 @@ export default class CoreClient {
         } finally {
             localStorage.removeItem('userInfo');
             this.userInfo = null; // Clear clientInfo on logout
+            window.location.href = '/logout';
         }
     }
 
@@ -158,6 +209,14 @@ export default class CoreClient {
     set updateClientFeedback(val: boolean) {
         if (!this.userInfo) return;
         this.userInfo.doneFeedbackToday = val;
+    }
+
+    async getLatestUserInfo() {
+        const result = await this.get('/api/auth/loadUserInfo');
+        if (result) {
+            this.userInfo = { ...this.userInfo, ...result }
+            localStorage.setItem('userInfo', JSON.stringify(this.userInfo)); // Store userInfo in localStorage
+        }
     }
 
     async getEmployees(): Promise<Employee[]> {
@@ -380,13 +439,14 @@ export default class CoreClient {
 
     }
 
-    async getSales(filters?: { status?: string; id?: number }): Promise<SaleRecord[]> {
+    async getSales(filters?: { status?: string; order_id?: number, payment_method?: string }): Promise<SaleRecord[]> {
         let url = '/api/sale/getSales';
 
         if (filters) {
             const queryParams = new URLSearchParams();
             if (filters.status) queryParams.append('status', filters.status);
-            if (filters.id) queryParams.append('id', filters.id.toString());
+            if (filters.order_id) queryParams.append('order_id', filters.order_id.toString());
+            if (filters.payment_method) queryParams.append('payment_method', filters.payment_method.toString());
             url += `?${queryParams.toString()}`;
         }
 
@@ -404,6 +464,24 @@ export default class CoreClient {
         return (result) ? result['feedbacks'] : [];
     }
 
+    async loadWhitelabeling() {
+        const settings = this.getSetting;
+        if (settings && typeof settings.company_logo === 'string') {
+            /* this faivcon is handled saperatly for login page */
+            let link = document.querySelector("link[rel~='icon']");
+            if (!link) {
+                link = document.createElement('link');
+                (link as any).rel = 'icon';
+                document.getElementsByTagName('head')[0].appendChild(link);
+            }
+            (link as any).href = `http://localhost:6001${settings.company_logo}`;
+
+            // Set dynamic title
+            const dynamicTitle = settings.company_name || "POS System"; // Fallback to a default title
+            document.title = dynamicTitle;
+        }
+
+    }
+
+
 }
-
-

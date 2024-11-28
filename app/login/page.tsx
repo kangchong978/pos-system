@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { useDispatch } from 'react-redux';
@@ -22,10 +22,25 @@ export default function Login() {
     const [newPassword, setNewPassword] = useState('');
     const [newPasswordConfirm, setNewPasswordConfirm] = useState('');
     const [error, setError] = useState('');
+    const [companySettings, setCompanySettings] = useState<CompanyInfo>();
+
 
     const router = useRouter();
     const dispatch = useDispatch<AppDispatch>();
     const { coreClient, isInitialized } = useCoreClient(true); // Pass true to skip auth check
+
+
+    useEffect(() => {
+        if (isInitialized && coreClient) {
+            var loadSettings = async () => {
+                var result = await coreClient?.loadSettings();
+                setCompanySettings(coreClient.getSetting!);
+
+            }
+            loadSettings();
+        }
+    }, [isInitialized]);
+
 
     const styles = useMemo(() => ({
         container: {
@@ -187,7 +202,7 @@ export default function Login() {
                     style={styles.loginContainer}
                 >
                     <div style={styles.loginForm}>
-                        <h1 style={styles.title}>POS System</h1>
+                        <h1 style={styles.title}> {companySettings?.company_name}</h1>
                         <h2 style={styles.subtitle}>Login</h2>
                         <input
                             type="text"
@@ -213,7 +228,8 @@ export default function Login() {
                         </button>
                     </div>
                     <div style={styles.imageContainer}>
-                        <img src="undraw_tasting_re_3k5a.svg" alt="Login illustration" style={styles.image} />
+                        {/* <img src="undraw_tasting_re_3k5a.svg" alt="Login illustration" style={styles.image} /> */}
+                        <img src={`http://localhost:6001${companySettings?.company_logo as string}`} alt="Company Logo" />
                     </div>
                 </motion.div>
             </div>

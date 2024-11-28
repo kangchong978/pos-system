@@ -1,16 +1,19 @@
 interface User {
-    id: number;
-    username: string;
-    email: string;
-    accessToken: string;
-    phoneNumber: string;
-    role: [string];
-    gender?: string,
-    address?: string,
-    dob?: string,
-
+    profile: {
+        id: number;
+        username: string;
+        email: string;
+        phoneNumber: string;
+        role: [string];
+        gender?: string,
+        address?: string,
+        dob?: string,
+    }
     accessibleRoute: [RouteAuth];
     doneFeedbackToday: boolean;
+    updatePasswordRequired: boolean;
+    refreshToken: string;
+    accessToken: string;
 }
 
 interface Employee {

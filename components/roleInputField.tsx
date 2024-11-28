@@ -17,6 +17,12 @@ const RoleInput: React.FC<RoleInputProps> = ({ value, onChange, disabled = false
     const [showSuggestions, setShowSuggestions] = useState(false);
     const { currentTheme } = useTheme(); // Get the current theme
     const { isInitialized, coreClient } = useCoreClient();
+    /* initial suggestions */
+    const suggestions = [
+        'staff',
+        'cashier',
+        'manager',
+    ];
 
 
     /* to overcome the theme incorrect by rerender while theme changed */
@@ -82,7 +88,7 @@ const RoleInput: React.FC<RoleInputProps> = ({ value, onChange, disabled = false
         },
     }), [currentTheme]); // Recalculate styles when theme changes
 
-    const suggestions = ['staff', 'cashier', 'manager'];
+
     const roles = value.split(',').filter(role => role.trim() !== '');
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -90,6 +96,7 @@ const RoleInput: React.FC<RoleInputProps> = ({ value, onChange, disabled = false
         setShowSuggestions(true);
     };
 
+    /* add new value to field */
     const addRole = useCallback((role: string) => {
         const newRoles = roles.includes(role) ? roles : [...roles, role];
         onChange(newRoles.join(','));
@@ -126,7 +133,7 @@ const RoleInput: React.FC<RoleInputProps> = ({ value, onChange, disabled = false
                             style={disabled ? { ...styles.chip, ...styles.disabledChip } : styles.chip}
                         >
                             {role}
-                            {!disabled && (
+                            {role != 'admin' && !disabled && (
                                 <motion.button
                                     style={styles.chipButton}
                                     whileHover={{ scale: 1.1 }}

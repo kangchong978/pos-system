@@ -37,13 +37,13 @@ export const checkAuthAndRoute = (): AppThunk => async (dispatch, getState) => {
         if (currentPath !== '/login') {
             window.location.href = '/login';
         }
-    } else if (currentPath === '/') {
+    } else if (currentPath === '/' && accessibleRoutes.length > 0) {
         const defaultRoute = accessibleRoutes.find(route => route.route === '/dashboard')
             || accessibleRoutes[0]
             || { route: '/notFound' };
         window.location.href = defaultRoute.route ?? '';
-    } else if (!accessibleRoutes.some(route => route.route === currentPath)) {
-        window.location.href = '/';
+    } else if (currentPath != '/notFound' && !accessibleRoutes.some(route => route.route === currentPath)) {
+        window.location.href = '/notFound';
     }
 };
 
@@ -76,9 +76,9 @@ const appSlice = createSlice({
         clearError: (state) => {
             state.error = null;
         },
-        // this is used to check while employee are required to feedback after the first sale created
+        // this is used to check while employee are required to feedback and prompt the feedback modal
         verifyIsRequiredFeedback: (state) => {
-            state.showEmployeeFeedback = !state.coreClient?.getUserInfo?.doneFeedbackToday ?? false;
+            state.showEmployeeFeedback = !state.coreClient?.getUserInfo?.doneFeedbackToday;
         },
     },
     extraReducers: (builder) => {

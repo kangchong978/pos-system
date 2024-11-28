@@ -32,6 +32,7 @@ export default function Settings() {
     });
     const [routesAuth, setRoutesAuth] = useState<RouteAuth[]>([]);
     const [changed, setChanged] = useState<boolean>(false);
+    const [errors, setErrors] = useState<any>({});
 
     const styles = useMemo(() => ({
         container: {
@@ -76,6 +77,11 @@ export default function Settings() {
             display: 'block',
             marginBottom: '0.5rem',
             color: getColor('text-secondary'),
+        },
+        errorLabel: {
+            display: 'block',
+            marginBottom: '0.5rem',
+            color: getColor('error'),
         },
         input: {
             width: '100%',
@@ -153,8 +159,12 @@ export default function Settings() {
             const settings = await coreClient.getSettings();
             setCompanyInfo(settings);
 
-            const result = await coreClient.getRoutesAuth();
-            setRoutesAuth(result);
+            /* only admin are able to edit route permissions */
+            if (coreClient.getUserInfo?.profile.role.includes('admin')) {
+                var result = await coreClient.getRoutesAuth();
+                setRoutesAuth(result);
+            }
+
         } catch (error) {
             console.error('Error loading initial data:', error);
             dispatch(setError('Failed to load settings'));
@@ -190,6 +200,39 @@ export default function Settings() {
         setChanged(true);
     };
 
+    const validateForm = () => {
+        const errors: any = {};
+        if (!companyInfo.address.trim()) {
+            errors.address = "Address is required";
+        }
+
+        if (!companyInfo.company_name.trim()) {
+            errors.company_name = "Company name is required";
+        }
+
+        if (!companyInfo.email.trim()) {
+            errors.email = "Email is required";
+        } else if (!/^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$/.test(companyInfo.email)) {
+            errors.email = "Invalid email format";
+        }
+
+        if (!companyInfo.phone_number.trim()) {
+            errors.phone_number = "Phone number is required";
+        } else if (!/^\d+$/.test(companyInfo.phone_number)) {
+            errors.phone_number = "Phone number must contain only numbers";
+        }
+
+        if (!companyInfo.tax) {
+            errors.tax = "Tax is required";
+        } else if (isNaN(companyInfo.tax)) {
+            errors.tax = "Tax must be a numeric value";
+        }
+
+        setErrors(errors);
+        return Object.keys(errors).length === 0;
+
+    };
+
     const handleSubmit = async (): Promise<void> => {
         if (!changed) {
             toast.error('No changes.');
@@ -202,6 +245,8 @@ export default function Settings() {
 
         dispatch(setLoading(true));
         try {
+            if (!validateForm()) return;
+
             let updatedCompanyInfo = { ...companyInfo };
 
             if (companyInfo.company_logo instanceof File) {
@@ -264,6 +309,7 @@ export default function Settings() {
                                     placeholder="Enter company name"
                                     style={styles.input}
                                 />
+                                <label htmlFor="company-name-error" style={styles.errorLabel}> {errors.company_name}</label>
                             </div>
                             <div style={styles.formGroup}>
                                 <label htmlFor="company-address" style={styles.label}>Address</label>
@@ -275,6 +321,7 @@ export default function Settings() {
                                     placeholder="Enter company address"
                                     style={styles.input}
                                 />
+                                <label htmlFor="company-address-error" style={styles.errorLabel}> {errors.address}</label>
                             </div>
                             <div style={styles.formGroup}>
                                 <label htmlFor="company-email" style={styles.label}>Email</label>
@@ -287,6 +334,7 @@ export default function Settings() {
                                     placeholder="Enter company email"
                                     style={styles.input}
                                 />
+                                <label htmlFor="company-email-error" style={styles.errorLabel}> {errors.email}</label>
                             </div>
                             <div style={styles.formGroup}>
                                 <label htmlFor="company-website" style={styles.label}>Website</label>
@@ -298,6 +346,7 @@ export default function Settings() {
                                     placeholder="Enter company website"
                                     style={styles.input}
                                 />
+                                <label htmlFor="company-address-error" style={styles.errorLabel}> {errors.address}</label>
                             </div>
                             <div style={styles.formGroup}>
                                 <label htmlFor="company-phone" style={styles.label}>Phone Number</label>
@@ -309,6 +358,7 @@ export default function Settings() {
                                     placeholder="Enter company phone number"
                                     style={styles.input}
                                 />
+                                <label htmlFor="company-phone-error" style={styles.errorLabel}> {errors.phone_number}</label>
                             </div>
                             <div style={styles.formGroup}>
                                 <label htmlFor="company-tax" style={styles.label}>Tax Rate (%)</label>
@@ -323,6 +373,7 @@ export default function Settings() {
                                     placeholder="0.00"
                                     style={styles.input}
                                 />
+                                <label htmlFor="company-tax" style={styles.errorLabel}> {errors.tax}</label>
                             </div>
                             <div style={styles.formGroup}>
                                 <label htmlFor="company-logo" style={styles.label}>Company Logo</label>
@@ -352,30 +403,35 @@ export default function Settings() {
                         </div>
                     </motion.div>
 
-                    <motion.div style={styles.section} whileHover={{ scale: 1.02 }} transition={{ duration: 0.2 }}>
-                        <h2 style={styles.sectionTitle}>Page Access Permissions</h2>
-                        <table style={styles.table}>
-                            <thead>
-                                <tr>
-                                    <th style={styles.th}>Route</th>
-                                    <th style={styles.th}>Authorized Role</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {routesAuth?.map((route) => (
-                                    <tr key={route.route}>
-                                        <td style={styles.td}>{route.route}</td>
-                                        <td style={styles.td}>
-                                            <RoleInput
-                                                value={route.role ?? ''}
-                                                onChange={(value) => handleRouteAuthChange(route.route!, value)}
-                                            />
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </motion.div>
+                    {coreClient.getUserInfo?.profile.role.includes('admin')
+                        ? <>
+                            <motion.div style={styles.section} whileHover={{ scale: 1.02 }} transition={{ duration: 0.2 }}>
+                                <h2 style={styles.sectionTitle}>Page Access Permissions</h2>
+                                <table style={styles.table}>
+                                    <thead>
+                                        <tr>
+                                            <th style={styles.th}>Route</th>
+                                            <th style={styles.th}>Authorized Role</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {routesAuth?.map((route) => (
+                                            <tr key={route.route}>
+                                                <td style={styles.td}>{route.route}</td>
+                                                <td style={styles.td}>
+                                                    <RoleInput
+                                                        value={route.role ?? ''}
+                                                        onChange={(value) => handleRouteAuthChange(route.route!, value)}
+                                                    />
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </motion.div></> : <>
+                            <p style={styles.label}>* Only admin role could make changes on route</p>
+                        </>
+                    }
 
                     <h2 style={styles.sectionTitle}>Themes</h2>
                     <ThemeSwitcher onThemeChange={handleThemeChange} />

@@ -152,6 +152,7 @@ export default function Pos() {
             border: `1px solid ${getColor('border')}`,
             fontSize: '14px',
             backgroundColor: getColor('background-primary'),
+            color: getColor('on-primary'),
         },
         searchIcon: {
             position: 'absolute' as const,
@@ -434,6 +435,9 @@ export default function Pos() {
         }
     }, [order, isInitialized, coreClient]);
 
+    useEffect(() => {
+        loadProducts(1);
+    }, [selectedCategory])
 
 
     const initialize = async () => {
@@ -558,9 +562,6 @@ export default function Pos() {
     }, [coreClient, searchTerm, selectedCategory, dispatch]);
 
 
-    const searchProducts = useCallback(() => {
-        loadProducts(1);
-    }, [loadProducts]);
 
     const handlePageChange = (page: number) => {
         loadProducts(page);
@@ -621,6 +622,7 @@ export default function Pos() {
 
     const handleSelectCategory = async (e: Category) => {
         dispatch(setSelectedCategory(e));
+
     };
 
     const handlePaymentMethodSelect = (method: string) => {
@@ -684,7 +686,6 @@ export default function Pos() {
             await new Promise((resolve) => setTimeout(resolve, 2000));
             dispatch(setPaymentLoadingStatus(PaymentLoadingStatus.Idle));
             dispatch(setShowCashModal(false));
-            dispatch(verifyIsRequiredFeedback())
             handleBackToHome();
         } catch (error) {
             console.error('Error processing payment:', error);
@@ -978,7 +979,8 @@ export default function Pos() {
                             onChange={(e) => dispatch(setSearchTerm(e.target.value))}
                             onKeyDown={(e) => {
                                 if (e.key === 'Enter') {
-                                    // loadProducts();
+                                    setCurrentPage(1);
+                                    loadProducts(1);
                                 }
                             }}
                         />

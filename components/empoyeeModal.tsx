@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import RoleInput from './roleInputField';
 import toast from 'react-hot-toast';
@@ -13,12 +13,13 @@ interface EmployeeModalProps {
     onSubmit: (employee: any) => void;
     isEdit: boolean;
     isProfile: boolean;
-    onPasswordReset: () => void;
+    onPasswordReset?: (employee: any) => void;
 }
 
 const EmployeeModal: React.FC<EmployeeModalProps> = (props) => {
     const { isEdit, isProfile, employee, setEmployee, onClose, onSubmit, onPasswordReset } = props;
     const { currentTheme } = useTheme(); // Get the current theme
+    const [errors, setErrors] = useState<any>({});
 
     const styles = useMemo(() => ({
         modalOverlay: {
@@ -69,6 +70,12 @@ const EmployeeModal: React.FC<EmployeeModalProps> = (props) => {
             color: getColor('on-surface'),
             fontWeight: 'medium',
         },
+        errorLabel: {
+            display: 'block',
+            marginBottom: '0.25rem',
+            color: getColor('error'),
+            fontWeight: 'medium',
+        },
         button: {
             padding: '0.5rem 1rem',
             borderRadius: '4px',
@@ -94,9 +101,55 @@ const EmployeeModal: React.FC<EmployeeModalProps> = (props) => {
         setEmployee({ ...employee, role: value });
     };
 
+    const validateForm = () => {
+        const errors: any = {};
+
+        if (!employee.dob) {
+            errors.dob = "Date of Birth is required";
+        } else if (isNaN(Date.parse(employee.dob))) {
+            errors.dob = "Invalid Date of Birth format";
+        }
+
+        if (!employee.email?.trim()) {
+            errors.email = "Email is required";
+        } else if (!/^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$/.test(employee.email)) {
+            errors.email = "Invalid email format";
+        }
+
+        if (!employee.gender?.trim()) {
+            errors.gender = "Gender is required";
+        } else if (!["male", "female", "other"].includes(employee.gender)) {
+            errors.gender = "Gender must be Male, Female, or Other";
+        }
+
+        if (!employee.phoneNumber?.trim()) {
+            errors.phoneNumber = "Phone number is required";
+        } else if (!/^\d+$/.test(employee.phoneNumber)) {
+            errors.phoneNumber = "Phone number must contain only numbers";
+        }
+
+        if (!employee.role?.trim()) {
+            errors.role = "Role is required";
+        }
+
+        if (!employee.username?.trim()) {
+            errors.username = "Username is required";
+        }
+
+        setErrors(errors);
+        return Object.keys(errors).length === 0;
+    };
+
+
     const handleSubmitEmployee = () => {
+        if (!validateForm()) return;
         onSubmit(employee);
     };
+
+    const handleResetEmployeePassword = () => {
+        if (onPasswordReset)
+            onPasswordReset(employee);
+    }
 
     const buildHeaderTitle = () => {
         if (isEdit) return 'Edit Employee';
@@ -140,6 +193,7 @@ const EmployeeModal: React.FC<EmployeeModalProps> = (props) => {
                                     onChange={handleInputChange}
                                 />
                             </label>
+                            <label htmlFor="username-error" style={styles.errorLabel}> {errors.username}</label>
                         </div>
                         <div>
                             <label style={styles.label}>
@@ -153,6 +207,7 @@ const EmployeeModal: React.FC<EmployeeModalProps> = (props) => {
                                     onChange={handleInputChange}
                                 />
                             </label>
+                            <label htmlFor="email-error" style={styles.errorLabel}> {errors.email}</label>
                         </div>
                         <div>
                             <label style={styles.label}>
@@ -166,6 +221,8 @@ const EmployeeModal: React.FC<EmployeeModalProps> = (props) => {
                                     onChange={handleInputChange}
                                 />
                             </label>
+                            <label htmlFor="phone-number-error" style={styles.errorLabel}> {errors.phoneNumber}</label>
+
                         </div>
                         <div>
                             <label style={styles.label}>
@@ -178,6 +235,7 @@ const EmployeeModal: React.FC<EmployeeModalProps> = (props) => {
                                     onChange={handleInputChange}
                                 />
                             </label>
+                            <label htmlFor="dob-error" style={styles.errorLabel}> {errors.dob}</label>
                         </div>
                         <div>
                             <label style={styles.label}>
@@ -194,6 +252,7 @@ const EmployeeModal: React.FC<EmployeeModalProps> = (props) => {
                                     <option value="other">Other</option>
                                 </select>
                             </label>
+                            <label htmlFor="gender-error" style={styles.errorLabel}> {errors.gender}</label>
                         </div>
                         <div style={styles.fullWidth}>
                             <label style={styles.label}>
@@ -217,17 +276,18 @@ const EmployeeModal: React.FC<EmployeeModalProps> = (props) => {
                                     disabled={isProfile}
                                 />
                             </label>
+                            <label htmlFor="role-error" style={styles.errorLabel}> {errors.role}</label>
                         </div>
                     </div>
                     <div style={styles.buttonContainer}>
-                        <motion.button
+                        {isEdit ? <motion.button
                             whileHover={{ scale: 1.05 }}
                             whileTap={{ scale: 0.95 }}
                             style={{ ...styles.button, backgroundColor: getColor('warning') }}
-                            onClick={onPasswordReset}
+                            onClick={handleResetEmployeePassword}
                         >
                             Reset Password
-                        </motion.button>
+                        </motion.button> : <div />}
                         <div>
                             <motion.button
                                 whileHover={{ scale: 1.05 }}

@@ -94,7 +94,7 @@ export default function Sales() {
     const [salesData, setSalesData] = useState<SaleRecord[]>([]);
     const [searchTerm, setSearchTerm] = useState('');
     const [activeSearchTerm, setActiveSearchTerm] = useState('');
-    const [paymentMethodFilter, setPaymentMethodFilter] = useState('all');
+    const [paymentMethodFilter, setPaymentMethodFilter] = useState('All');
 
     useEffect(() => {
         if (isInitialized && coreClient) {
@@ -113,7 +113,7 @@ export default function Sales() {
                     filters.order_id = orderId;
                 }
             }
-            if (paymentMethodFilter !== 'all') {
+            if (paymentMethodFilter !== 'All') {
                 filters.payment_method = paymentMethodFilter;
             }
             const result = await coreClient.getSales(filters);
@@ -180,10 +180,12 @@ export default function Sales() {
                         value={paymentMethodFilter}
                         onChange={(e) => setPaymentMethodFilter(e.target.value)}
                     >
-                        <option value="all">All Payment Methods</option>
-                        <option value="cash">Cash</option>
-                        <option value="credit">Credit Card</option>
-                        {/* Add other payment methods as needed */}
+                        <option value="All">All Payment Methods</option>
+                        <option value="Visa">Visa</option>
+                        <option value="Cash">Cash</option>
+                        <option value="Paypal">Paypal</option>
+                        <option value="Touch n Go">Touch n Go</option>
+                        <option value="MasterCard">MasterCard</option>
                     </select>
                 </motion.div>
 

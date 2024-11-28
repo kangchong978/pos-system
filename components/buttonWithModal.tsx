@@ -124,7 +124,7 @@ const ButtonWithModal: React.FC<ButtonWithModalProps> = ({ buttonText, onSubmit 
                     onClick={handleSubmit}
                     disabled={!tableName.trim()}
                   >
-                    Save changes
+                    Add Table
                   </motion.button>
                 </div>
               </motion.div>

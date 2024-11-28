@@ -1,7 +1,7 @@
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState, AppDispatch } from '@/store';
 import { checkAuthAndRoute, clearError, initializeApp, setLoading } from '@/redux_slices/appSlice';
-import { useEffect, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { usePathname } from 'next/navigation';
 
 export const useCoreClient = (skipAuthCheck = false) => {
@@ -11,14 +11,13 @@ export const useCoreClient = (skipAuthCheck = false) => {
     const initializationChecked = useRef(false);
 
     useEffect(() => {
-        const checkInitialization = async () => {
-            if (!isInitialized && !initializationChecked.current) {
-                initializationChecked.current = true;
-                await dispatch(initializeApp());
-            }
-        };
 
-        checkInitialization();
+        const initialize = async () => {
+            await dispatch(initializeApp());
+        }
+        if (!isInitialized) {
+            initialize();
+        }
     }, [isInitialized, dispatch]);
 
     useEffect(() => {

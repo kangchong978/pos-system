@@ -198,6 +198,18 @@ export default function Employees() {
         }
     }
 
+    const handleResetEmployeePassword = async () => {
+        if (!coreClient || !currentEmployee) return;
+
+        var result = await coreClient.resetUserPassword(currentEmployee);
+
+        if (result) {
+            setCurrentEmployee(null);
+            setSavedTempPassword([{ 'id': result.id, 'tempPassword': result.tempPassword }, ...savedTempPassword]);
+            setTempPassword(result.tempPassword);
+        }
+    }
+
 
 
     if (isPageLoading) {
@@ -227,7 +239,7 @@ export default function Employees() {
                         <Search size={18} style={styles.searchIcon} />
                         <input
                             type="text"
-                            placeholder="Search orders by ID..."
+                            placeholder="Search employee by name..."
                             style={styles.searchInput}
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
@@ -320,9 +332,7 @@ export default function Employees() {
                     onSubmit={handleSubmitEmployee}
                     isEdit={isEdit}
                     isProfile={false}
-                    onPasswordReset={function (): void {
-                        // Implementation not provided
-                    }} />}
+                    onPasswordReset={handleResetEmployeePassword} />}
                 {tempPassword && <TempPasswordModal
                     tempPassword={tempPassword}
                     onClose={() => setTempPassword('')}

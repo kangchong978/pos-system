@@ -49,13 +49,14 @@ export default function EmployeeFeedbackDashboard(): JSX.Element {
         },
         subtitle: {
             fontSize: '1.0rem',
-            color: getColor('text-secondary'),
+            color: getColor('text-primary'),
         },
         metricsContainer: {
             display: 'flex',
             justifyContent: 'space-between',
             marginBottom: '3rem',
             gap: '1.5rem',
+            color: getColor('text-primary'),
         },
         metricCard: {
             flex: '1',
@@ -81,6 +82,7 @@ export default function EmployeeFeedbackDashboard(): JSX.Element {
             padding: '1.5rem',
             fontSize: '1.4rem',
             fontWeight: 'bold',
+            color: getColor('primary'),
         },
         tableCardBody: {
             padding: '1.5rem',
@@ -101,7 +103,7 @@ export default function EmployeeFeedbackDashboard(): JSX.Element {
         },
         tableHeaderCell: {
             padding: '1rem 1.5rem',
-            color: getColor('text-secondary'),
+            color: getColor('text-primary'),
             fontWeight: 'bold',
         },
         chartCell: {
@@ -127,6 +129,7 @@ export default function EmployeeFeedbackDashboard(): JSX.Element {
             padding: '0.5rem',
             backgroundColor: getColor('surface'),
             borderRadius: '4px',
+            color: getColor('text-primary'),
         },
     }), [currentTheme]);
 

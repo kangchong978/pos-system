@@ -20,7 +20,7 @@ const Sidebar = () => {
     const [employeeProfile, setEmployeeProfile] = useState<Employee | null>(null);
     const [companyLogo, setCompanyLogo] = useState<string | null>(null);
 
-    const { isInitialized, coreClient, showEmployeeFeedback } = useCoreClient(pathname == '/login' || pathname == '/logout');
+    const { isInitialized, coreClient, showEmployeeFeedback } = useCoreClient(pathname == '/notFound' || pathname == '/login' || pathname == '/logout');
     const dispatch = useDispatch<AppDispatch>();
     const { currentTheme } = useTheme();
 
@@ -78,11 +78,13 @@ const Sidebar = () => {
         } as React.CSSProperties,
     }), [currentTheme]);
 
+
+
     useEffect(() => {
         if (isInitialized && coreClient) {
             const userInfo = coreClient.getUserInfo;
             if (userInfo) {
-                setUsernameShort(getFirstCharacters(userInfo.username));
+                setUsernameShort(getFirstCharacters(userInfo.profile.username));
                 setAccessibleRoute(userInfo.accessibleRoute);
             }
 
@@ -101,6 +103,11 @@ const Sidebar = () => {
             };
 
             fetchCompanySettings();
+
+            /* Show the emploee daily feedback forms after a second */
+            setTimeout(() => {
+                dispatch(verifyIsRequiredFeedback())
+            }, 1000);
         }
     }, [isInitialized, coreClient?.getUserInfo, coreClient?.getSetting, dispatch]);
 
@@ -111,15 +118,14 @@ const Sidebar = () => {
             const userInfo = coreClient.getUserInfo;
             if (userInfo) {
                 const employee: Employee = {
-                    email: userInfo.email,
-                    phoneNumber: userInfo.phoneNumber,
-                    role: userInfo.role.toString(),
-                    username: userInfo.username,
-                    // tempPassword: userInfo.tempPassword,
-                    gender: userInfo.gender,
-                    address: userInfo.address,
-                    id: userInfo.id,
-
+                    email: userInfo.profile.email,
+                    phoneNumber: userInfo.profile.phoneNumber,
+                    role: userInfo.profile.role.toString(),
+                    username: userInfo.profile.username,
+                    gender: userInfo.profile.gender,
+                    address: userInfo.profile.address,
+                    id: userInfo.profile.id,
+                    dob: userInfo.profile.dob
                 };
                 setEmployeeProfile(employee);
             }
@@ -138,23 +144,15 @@ const Sidebar = () => {
             const userInfo = coreClient.getUserInfo;
 
             if (!userInfo) return;
-            // if (isEdit) {
-            await coreClient.updateUser({ ...data, id: userInfo.id });
-            // } else {
-            //     const result = await coreClient.registerUser(data);
-            //     if (result) {
-            //         setSavedTempPassword([{ 'id': result.id, 'tempPassword': result.tempPassword }, ...savedTempPassword]);
-            //         setTempPassword(result.tempPassword);
-            //     }
-            // }
-            // setCurrentEmployee(null);
-            // await loadUsers();
+            await coreClient.updateUser({ ...data, id: userInfo.profile.id });
+            await coreClient.loadClientInfo();
             toast.success('Profile updated successfully');
         } catch (error) {
             console.error('Failed to submit profile:', error);
             toast.error('Failed to submit profile');
         } finally {
             dispatch(setLoading(false));
+            setEmployeeProfile(null);
         }
     }
 
@@ -228,7 +226,7 @@ const Sidebar = () => {
                     </svg>
                 </Link>
             </motion.div>
-            {coreClient && coreClient.isLoggedIn && showEmployeeFeedback && < EmployeeFeedbackModal
+            {isInitialized && coreClient && coreClient.isLoggedIn && showEmployeeFeedback && < EmployeeFeedbackModal
                 isOpen={true}
                 onClose={() => { }}
                 onSubmit={async (v) => {
@@ -237,7 +235,7 @@ const Sidebar = () => {
                     dispatch(verifyIsRequiredFeedback())
 
                 }}
-                username={coreClient.getUserInfo!.username}
+                username={coreClient.getUserInfo!.profile.username}
             />
             }
             {employeeProfile && (
@@ -248,9 +246,6 @@ const Sidebar = () => {
                     onSubmit={handleSubmitProfile}
                     isEdit={false}
                     isProfile={true}
-                    onPasswordReset={function (): void {
-                        throw new Error('Function not implemented.');
-                    }}
                 />
             )}
 
