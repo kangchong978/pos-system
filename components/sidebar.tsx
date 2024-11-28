@@ -107,7 +107,7 @@ const Sidebar = () => {
             /* Show the emploee daily feedback forms after a second */
             setTimeout(() => {
                 dispatch(verifyIsRequiredFeedback())
-            }, 1000);
+            }, 3000);
         }
     }, [isInitialized, coreClient?.getUserInfo, coreClient?.getSetting, dispatch]);
 

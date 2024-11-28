@@ -162,7 +162,7 @@ export default function Orders() {
     };
 
     const onPrintReceipt = (orderId: number, event: React.MouseEvent) => {
-        handlePrintReceipt(orderId, event, coreClient, dispatch, true);
+        handlePrintReceipt(orderId, coreClient, dispatch, true, event);
     };
 
     if (loading) return <LoadingScreen></LoadingScreen>;

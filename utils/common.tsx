@@ -5,12 +5,12 @@ import CoreClient from "./client";
 
 export const handlePrintReceipt = (
     orderId: number,
-    event: React.MouseEvent,
     coreClient: CoreClient | null,
     dispatch: AppDispatch,
     isOrderList: boolean,
+    event?: React.MouseEvent,
 ) => {
-    event.stopPropagation(); // Prevent row click event
+    if (event) event.stopPropagation(); // Prevent row click event
 
     if (!coreClient) {
         toast.error('Application is not initialized');

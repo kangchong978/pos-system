@@ -40,6 +40,7 @@ import CashPaymentModal from '@/components/cashPaymentModal';
 import { getColor } from '@/utils/colorUtils';
 import { useTheme } from '@/components/ThemeContext';
 import CategoriesChips from '@/components/categoriesChips';
+import { handlePrintReceipt } from '@/utils/common';
 
 
 const paymentMethods = [
@@ -356,6 +357,18 @@ export default function Pos() {
         paymentMethodSelected: {
             borderColor: getColor('primary'),
         },
+        fireButton: {
+            width: '100%',
+            backgroundColor: getColor('secondary'),
+            color: getColor('on-primary'),
+            border: 'none',
+            borderRadius: '10px',
+            padding: '12px',
+            marginTop: '20px',
+            cursor: 'pointer',
+            fontWeight: 'bold',
+            fontSize: '16px',
+        },
         proceedButton: {
             width: '100%',
             backgroundColor: getColor('primary'),
@@ -629,6 +642,11 @@ export default function Pos() {
         dispatch(setSelectedPaymentMethod(method));
     };
 
+    const handleProceedToFire = () => {
+        if (order)
+            handlePrintReceipt(order!.id, coreClient, dispatch, true, undefined);
+    }
+
     const handleProceedToPayment = () => {
         if (selectedPaymentMethod === 'Cash') {
             dispatch(setShowCashModal(true));
@@ -673,12 +691,15 @@ export default function Pos() {
             }
 
             // Record the sale
-            await coreClient.recordSale(
+            var result = await coreClient.recordSale(
                 order.id,
                 order.total,
                 order.total - order.subTotal,
                 method
             );
+
+
+            await handlePrintReceipt(result.id, coreClient, dispatch, false, undefined);
 
 
             console.log(`Payment method: ${method}, Received: ${received}, Change: ${change}`);
@@ -1138,6 +1159,14 @@ export default function Pos() {
                                                 </div>
 
                                                 <motion.button
+                                                    style={styles.fireButton}
+                                                    whileHover={{ scale: 1.02 }}
+                                                    whileTap={{ scale: 0.98 }}
+                                                    onClick={handleProceedToFire}
+                                                >
+                                                    Fire Order
+                                                </motion.button>
+                                                <motion.button
                                                     style={styles.proceedButton}
                                                     whileHover={{ scale: 1.02 }}
                                                     whileTap={{ scale: 0.98 }}
@@ -1194,3 +1223,4 @@ export default function Pos() {
     );
 
 }
+

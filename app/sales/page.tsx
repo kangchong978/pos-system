@@ -134,7 +134,7 @@ export default function Sales() {
     };
 
     const onPrintReceipt = (orderId: number, event: React.MouseEvent) => {
-        handlePrintReceipt(orderId, event, coreClient, dispatch, false);
+        handlePrintReceipt(orderId, coreClient, dispatch, false, event);
     };
 
 
